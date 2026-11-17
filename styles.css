@@ -1,0 +1,438 @@
+/* ==========================================================
+   Art Blk SMP Wiki: book theme  (system fonts only, no downloads)
+   A leather-bound book with brass corners, paper pages and index tabs.
+
+   SECTIONS (search for the number + name)
+    1. THEME ........ colours + fonts + dark mode. Change a value and the whole site follows.
+                      --leather-1/2 = book cover, --tab1..5 = index tab colours, --font-script / --font-body = fonts
+    2. BASE ......... reset and page background
+    3. PAGE SHELL ... header, music / dark-mode buttons, footer
+    4. THE BOOK ..... leather cover (.frame), paper (main), brass corners (.corner), index tabs (.tab)
+    5. SHARED ....... buttons (.btn), taped photo (.photo, tape colour in .photo::before), rarity colours
+    6. HOME TAB
+    7. BOSS BROWSER . Contents page (.contents, category buttons .seg, tick boxes .check) and
+                      boss page (.boss-entry, ruled notebook strip .more-details, ruled-line spacing --rule)
+    8. CARD TABS .... .grid + .card (Structures, Basic Guide, Updates)
+    9. PHOTOS TAB ... .photo-row (photo + paragraph, alternating sides)
+   10. POP-UPS ...... .modal window, close X, picture view, boss full entry, NPC list
+   11. ANIMATIONS
+   12. RESPONSIVE ... tablets and phones
+   ========================================================== */
+
+/* ==========================================================
+   1. THEME: colours, fonts, dark mode
+   ========================================================== */
+:root {
+  color-scheme: light;   /* keeps scrollbars and form controls light, even when the device itself is in dark mode */
+  /* COLOURS: edit these to re-theme everything. honey/amber = sunflower accents, ink = brown outlines. */
+  --parchment: #eadcbc;  --paper: #f3e9cf;  --paper-hi: #f8f0dc;  --tan: #dcc9a1;
+  --ink: #4b3a28;  --ink-soft: #8a7658;  --slate: #363c38;
+  --moss: #62794a;  --moss-tint: #e2e8cc;
+  --honey: #f0b429;  --amber: #c98a12;  --amber-deep: #8a5a06;  --stamp: #a24a30;
+  /* Extra tokens so dark mode can swap them (see the dark block right below). */
+  --bg-hi: #f4ead0;  --leather-1: #7a5532;  --leather-2: #5a3d24;
+  --edge-0: #bda97e;  --edge-1: #efe5c9;  --edge-2: #d6c7a0;
+  --banner-top: #f6e3a1;  --photo: #fbf5e4;  --note: #5b4a35;  --on-honey: #4b3a28;
+  --badge-fg: #3f5230;  --badge-bd: #b9c3a0;  --grain: .22;
+  --tab1: #f0d98a;  --tab2: #cdd9a8;  --tab3: #e9c4a4;  --tab4: #c3d3cf;  --tab5: #e2bdb0;
+  /* FONTS: handwriting for titles and notes, book serif for reading text. Each is a fallback list:
+     the first font installed on the visitor's device is used (Segoe Script on Windows, Bradley Hand/Snell Roundhand on Apple). */
+  --font-script: "Segoe Script", "Bradley Hand", "Snell Roundhand", "Apple Chancery", "URW Chancery L", cursive;
+  --font-display: var(--font-script);
+  --font-body: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+}
+/* DARK MODE: the toggle in the header sets data-theme="dark" on <html>. Edit these colours to re-theme it. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --parchment: #1b1813;  --paper: #2a251d;  --paper-hi: #322c22;  --tan: #463d2c;
+  --ink: #e6d7b5;  --ink-soft: #ab9a7c;  --slate: #e8e0cc;
+  --moss: #8fa872;  --moss-tint: #3a4430;
+  --amber: #e0a030;  --amber-deep: #f0c060;  --stamp: #de7552;
+  --bg-hi: #26221a;  --leather-1: #3e2c1b;  --leather-2: #2a1d11;
+  --edge-0: #5a4d38;  --edge-1: #2f2a20;  --edge-2: #272219;
+  --banner-top: #4a4220;  --photo: #3a3426;  --note: #d8c8a6;  --on-honey: #2b2205;
+  --badge-fg: #c9dba8;  --badge-bd: #55663f;  --grain: .1;
+  --tab1: #5c4d1f;  --tab2: #46502d;  --tab3: #5b4129;  --tab4: #34484a;  --tab5: #5a3a33;
+}
+:root[data-theme="dark"] .tab[aria-selected="true"] { background: #a24a30; }
+:root[data-theme="dark"] .r-common { background: #3a362b; color: #d8d2bd; border-color: #5b5540; }
+:root[data-theme="dark"] .r-uncommon { background: #3a4430; color: #c9dba8; border-color: #55663f; }
+:root[data-theme="dark"] .r-rare { background: #54421a; color: #f6dc8a; border-color: #8c6d1f; }
+
+/* ==========================================================
+   2. BASE: reset, page background, text defaults
+   ========================================================== */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: 1rem; }
+* { scrollbar-width: thin; scrollbar-color: var(--ink-soft) transparent; }   /* scrollbars follow the site theme */
+body {
+  margin: 0; min-height: 100dvh; display: flex; flex-direction: column;
+  font-family: var(--font-body); line-height: 1.5; color: var(--slate);
+  background: radial-gradient(ellipse at 50% 30%, var(--bg-hi), var(--parchment) 75%);
+}
+/* paper grain */
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .4 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+h1, h2, h3, h4, p { margin: 0; }
+h2, h3, h4 { font-family: var(--font-display); line-height: 1.2; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; border-radius: 4px; }
+img[hidden] { display: none !important; }
+.skip { position: absolute; left: -999px; color: #2b2205; background: var(--honey); padding: .5rem 1rem; z-index: 50; }
+.skip:focus { left: 1rem; top: 1rem; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ==========================================================
+   3. PAGE SHELL: header (name, logo, music/dark-mode buttons) and footer
+   ========================================================== */
+.sheet { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; width: min(1200px, 100%); margin-inline: auto; padding: .8rem 1rem 0; }
+/* Left: .brand-block = name + stamp, (the server IP is in the footer). Right: .tools = music and dark-mode buttons. */
+.site-header { position: relative; z-index: 3; display: flex; align-items: flex-start; justify-content: space-between; gap: .6rem 1rem; padding-bottom: .9rem; }
+.brand-block { display: flex; flex-direction: column; align-items: flex-start; gap: .6rem; min-width: 0; }
+.brand { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .9rem; min-width: 0; }
+.brand strong { font-family: var(--font-display); font-size: clamp(1.7rem, 1.1rem + 2.2vw, 2.8rem); line-height: 1.1; overflow-wrap: anywhere; }
+.logo { display: grid; place-items: center; flex: none; width: clamp(2.8rem, 2.2rem + 1.5vw, 3.6rem); aspect-ratio: 1; border: 2px dashed var(--ink-soft); border-radius: 6px; background: var(--paper); color: var(--ink-soft); font-size: .7rem; font-weight: 600; pointer-events: none; user-select: none; overflow: hidden; }
+.logo img { width: 100%; height: 100%; object-fit: cover; }
+/* Square logo: width = height, picture cropped to fill the square. */
+.logo.has-img { width: clamp(3rem, 2.4rem + 2vw, 4.5rem); aspect-ratio: 1; border: 2px solid var(--ink); border-radius: 6px; background: var(--paper); overflow: hidden; }
+.logo.has-img img { width: 100%; height: 100%; object-fit: cover; }
+.stamp { transform: rotate(-3deg); padding: .1rem .6rem; border: 2px solid var(--stamp); outline: 1px solid var(--stamp); outline-offset: 2px; border-radius: 6px; color: var(--stamp); background: rgba(162, 74, 48, .06); font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.stamp:empty { display: none; }
+.tools { display: flex; flex: none; gap: .5rem; }
+.tool { position: relative; display: grid; place-items: center; width: 46px; height: 46px; font-size: 1.3rem; line-height: 1; cursor: pointer; background: var(--paper); border: 2px solid var(--ink); border-radius: 50%; box-shadow: 2px 3px 0 rgba(75, 58, 40, .35); transition: background .2s, transform .15s; }
+.tool[hidden] { display: none; }
+.tool:hover, .tool[aria-pressed="true"] { background: var(--honey); color: var(--on-honey); }
+.tool:active { transform: scale(.94); }
+.tool.playing span { display: inline-block; animation: bob 1.2s ease-in-out infinite; }
+/* tooltip: shown on hover and on keyboard focus */
+.tool[data-tip]::after { content: attr(data-tip); position: absolute; top: calc(100% + 8px); right: 0; z-index: 10; width: max-content; max-width: min(260px, 80vw); padding: .35rem .7rem; font-size: .8rem; font-weight: 600; line-height: 1.3; text-align: left; color: var(--ink); background: var(--paper-hi); border: 2px solid var(--ink); border-radius: 8px; box-shadow: 2px 3px 0 rgba(75, 58, 40, .35); opacity: 0; transform: translateY(-4px); pointer-events: none; transition: opacity .15s, transform .15s; }
+.tool:hover::after, .tool:focus-visible::after { opacity: 1; transform: none; }
+.site-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .4rem 1rem; margin-top: .7rem; padding: .7rem .4rem; font-size: .875rem; color: var(--ink); border-top: 2px solid var(--ink-soft); }
+.site-footer a { color: inherit; font-weight: 600; }
+.server-ip span { font-weight: 600; user-select: all; }   /* one click selects the whole address so it is easy to copy */
+
+/* ==========================================================
+   4. THE BOOK: leather cover, paper pages, index tabs
+   ========================================================== */
+/* .frame = leather cover · main = the paper pages · .corner = brass corner guards. */
+.book-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.frame { position: relative; z-index: 2; flex: 1; display: flex; padding: 16px; border-radius: 6px; background: linear-gradient(135deg, var(--leather-1), var(--leather-2)); box-shadow: 5px 7px 0 rgba(75, 58, 40, .4); }  /* leather: change --leather-1 / --leather-2 at the top */
+.frame::before { content: ""; position: absolute; inset: 7px; border: 2px dashed rgba(240, 214, 160, .55); border-radius: 4px; pointer-events: none; }  /* stitching */
+.corner { position: absolute; z-index: 1; width: 34px; height: 34px; pointer-events: none; background: linear-gradient(135deg, #f6d878, #c98a12); }
+.corner.tl { top: 0; left: 0; clip-path: polygon(0 0, 100% 0, 0 100%); }
+.corner.tr { top: 0; right: 0; clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.corner.bl { bottom: 0; left: 0; clip-path: polygon(0 0, 0 100%, 100% 100%); }
+.corner.br { bottom: 0; right: 0; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+main { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--paper-hi); border-radius: 3px; box-shadow: 0 0 0 1px var(--edge-0), 4px 4px 0 -1px var(--edge-1), 8px 8px 0 -2px var(--edge-2); }  /* last two shadows = stacked page edges */
+nav { position: relative; z-index: 1; order: -1; }
+.tablist { display: flex; flex-direction: column; gap: 10px; }
+.tab { width: 100%; min-height: 56px; padding: .5rem 1.2rem .5rem .8rem; text-align: left; font-size: .88rem; font-weight: 600; line-height: 1.25; cursor: pointer; color: var(--ink); background: var(--tab, var(--tab1)); border: 2px solid var(--ink); border-right: 0; border-radius: 12px 0 0 12px; box-shadow: -2px 3px 0 rgba(75, 58, 40, .3); transition: transform .2s; }
+.tab:nth-child(5n+1) { --tab: var(--tab1); }   /* tab colours: change here */
+.tab:nth-child(5n+2) { --tab: var(--tab2); }
+.tab:nth-child(5n+3) { --tab: var(--tab3); }
+.tab:nth-child(5n+4) { --tab: var(--tab4); }
+.tab:nth-child(5n+5) { --tab: var(--tab5); }
+.tab:hover { transform: translateX(-4px); }
+.tab[aria-selected="true"] { transform: translateX(-10px); font-weight: 700; background: var(--stamp); color: #fff4e0; }  /* the open chapter */
+.tab:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--ink); }
+.panel { flex: 1; min-height: 0; padding: 1.25rem; }
+.col-title { font-family: var(--font-body); font-size: 1.15rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; text-align: center; margin-bottom: .8rem; }
+.panel-head { max-width: 60ch; margin: 0 auto 1.5rem; text-align: center; }
+.panel-head .col-title { font-size: clamp(1.3rem, 1rem + 1vw, 1.7rem); }
+.panel-head p { color: var(--ink-soft); }
+
+/* ==========================================================
+   5. SHARED PIECES: buttons, taped photo frame, picture box, rarity colours, badges
+   ========================================================== */
+.no-results { padding: .8rem; text-align: center; color: var(--ink-soft); }
+.empty { padding: 1rem; text-align: center; color: var(--ink-soft); }
+/* Taped photo. Change the tape colour in .photo::before / ::after below. */
+.photo { position: relative; margin: 0; padding: 8px; background: var(--photo); border: 1px solid var(--ink-soft); box-shadow: 0 3px 8px rgba(75, 58, 40, .3); transform: rotate(-1deg); }
+.photo::before, .photo::after { content: ""; position: absolute; width: 64px; height: 22px; background: rgba(240, 180, 41, .5); border: 1px solid rgba(201, 138, 18, .35); transform: rotate(-38deg); }
+.photo::before { top: -6px; left: -20px; }
+.photo::after { bottom: -6px; right: -20px; }
+.art { display: grid; place-items: center; aspect-ratio: 4 / 3; overflow: hidden; background: var(--art, linear-gradient(135deg, var(--moss-tint), #f3e3ae)); border: 2px solid var(--ink); }
+.art img { width: 100%; height: 100%; object-fit: cover; }
+.zoom { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.zoom .art img { transition: transform .25s; }
+.zoom:hover .art img { transform: scale(1.04); }
+.zoom:disabled { cursor: default; }                                    /* photo with no picture yet: not clickable */
+.zoom:not(:disabled):hover .shot-frame img { transform: scale(1.04); }
+.btn { min-height: 44px; padding: .4rem 1.1rem; font-weight: 700; color: #2b2205; cursor: pointer; background: var(--honey); border: 2px solid var(--ink); border-radius: 8px; box-shadow: 2px 3px 0 var(--ink); transition: transform .15s, box-shadow .15s; }
+.btn:hover { transform: translate(-1px, -1px); box-shadow: 3px 4px 0 var(--ink); }
+.btn:active { transform: translate(2px, 3px); box-shadow: none; }
+/* Rarity colours */
+.r-common { background: #ece8d8; color: #55503f; border-color: #cfc8ad; }
+.r-uncommon { background: var(--moss-tint); color: #3f5230; border-color: #b9c3a0; }
+.r-rare { background: #fbe7a8; color: #6b4604; border-color: #e3b94a; }
+.r-legendary { background: var(--amber); color: #fff8e6; border-color: var(--amber-deep); }
+.rarity { padding: .05rem .55rem; border: 1px solid; border-radius: 999px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+.badge { padding: .1rem .65rem; font-size: .8rem; font-weight: 600; background: var(--moss-tint); color: var(--badge-fg); border: 1px solid var(--badge-bd); border-radius: 999px; }
+/* NPC list inside the structure pop-up */
+.count { display: inline-block; min-width: 1.4rem; margin-left: .3rem; padding: 0 .4rem; text-align: center; font-family: var(--font-body); font-size: .75rem; font-weight: 700; color: #2b2205; background: var(--honey); border-radius: 999px; }
+
+/* ==========================================================
+   6. HOME TAB
+   ========================================================== */
+/* .home = the intro text, sitting straight on the page (no card). .card = topic cards (banner colours in .card-banner). */
+.home-panel:not([hidden]) { display: flex; align-items: flex-start; justify-content: flex-start; min-height: 50vh; }
+.home { width: 100%; max-width: none; padding: clamp(.4rem, 2vw, 2rem); text-align: left; }
+.home h2 { font-size: clamp(2.2rem, 1rem + 4.6vw, 5rem); line-height: 1.08; overflow-wrap: anywhere; }
+.home h2::after { content: ""; display: block; width: clamp(7rem, 30%, 16rem); height: 3px; margin: 1.1rem 0 1.4rem; background: linear-gradient(to right, var(--amber), transparent); }  /* divider under the title */
+.home p { max-width: 46ch; font-size: clamp(1.15rem, .85rem + 1.2vw, 2rem); line-height: 1.55; }
+.home p + p { margin-top: 1rem; }
+
+/* ==========================================================
+   7. BOSS BROWSER: Contents page (left) + boss page (right)
+   ========================================================== */
+
+/* ---- Layout: the two pages ---- */
+/* Left column = Contents (filter buttons + list). Right column = the open book. */
+.boss-browser { display: grid; grid-template-columns: minmax(250px, 330px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.contents, .boss-page { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 1rem 1.2rem; }
+.boss-page { position: relative; }
+.boss-page::before { content: ""; position: absolute; top: 0; bottom: 0; left: -18px; width: 36px; pointer-events: none; background: linear-gradient(to right, transparent, rgba(75, 58, 40, .28) 50%, transparent); }  /* spine shadow between the two pages */
+
+/* ---- Contents page (left): search, category buttons, list, tick boxes ---- */
+.search { display: block; margin-bottom: .6rem; }
+.search input { width: 100%; min-height: 42px; padding: .3rem .8rem; font: inherit; color: var(--slate); background: var(--paper-hi); border: 2px solid var(--ink); border-radius: 6px; }
+.search input::placeholder { color: var(--ink-soft); }
+.seg { display: flex; flex-wrap: wrap; margin: 0 0 .9rem; padding: 0 2px 2px 0; }   /* category buttons touch each other; add more and they wrap to a new row */
+.seg button { position: relative; flex: 1 1 auto; min-width: 0; min-height: 38px; margin: 0 -2px -2px 0; padding: .2rem .8rem; font-size: .88rem; line-height: 1.2; cursor: pointer; color: var(--slate); background: var(--paper-hi); border: 2px solid var(--ink); border-radius: 0; transition: background .2s; }   /* -2px margins overlap neighbouring borders so every line stays 2px thick */
+.seg button:hover { z-index: 1; background: var(--tan); }
+.seg button[aria-pressed="true"] { z-index: 2; color: var(--on-honey); background: var(--honey); }   /* no bold here: bold text is wider, which re-wraps the row and made "All" stretch */
+.contents-list { flex: 1; min-height: 0; margin: 0; padding: 0 .3rem .3rem 0; list-style: none; display: flex; flex-direction: column; gap: .6rem; overflow-y: auto; }
+.contents-item { display: flex; align-items: center; gap: .7rem; width: 100%; padding: .5rem; text-align: left; cursor: pointer; background: var(--paper-hi); border: 2px solid var(--ink); border-radius: 10px; transition: background .2s, transform .15s; }
+.contents-item:hover { transform: translateX(2px); }
+.contents-item[aria-current="true"] { background: var(--tan); }
+.thumb { flex: none; display: grid; place-items: center; width: 58px; height: 58px; overflow: hidden; background: var(--art, var(--paper)); border: 1px solid var(--ink-soft); border-radius: 6px; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.contents-item b { display: block; font-family: var(--font-display); font-size: 1rem; line-height: 1.25; }
+.contents-item em { font-style: normal; font-family: var(--font-body); font-weight: 700; }
+.contents { position: relative; padding-bottom: 1rem; }
+.contents-list li { display: flex; align-items: center; gap: .4rem; }
+.contents-list li > .contents-item { flex: 1; width: auto; min-width: 0; }
+.check { flex: none; display: grid; place-items: center; width: 44px; height: 44px; cursor: pointer; background: var(--paper-hi); border: 2px solid var(--ink); border-radius: 8px; transition: background .2s, transform .15s; }
+.check span { font-size: 1.25rem; font-weight: 700; color: transparent; transform: scale(.4); transition: transform .2s, color .2s; }
+.check[aria-pressed="true"] { background: var(--honey); }                       /* ticked colour */
+.check[aria-pressed="true"] span { color: var(--on-honey); transform: scale(1); }
+.check:active { transform: scale(.94); }
+.progress { margin: -.3rem 0 .8rem; text-align: center; font-family: var(--font-script); font-size: .9rem; color: var(--ink-soft); }
+
+/* ---- Boss page (right): the book entry ---- */
+.loot-row { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: 1.1rem; }
+.chip { display: flex; flex-direction: column; align-items: center; gap: .2rem; width: 72px; font-size: .72rem; text-align: center; line-height: 1.15; }
+.chip i { display: grid; place-items: center; width: 44px; height: 44px; padding: 4px; overflow: hidden; font-style: normal; border: 2px solid; border-radius: 50%; }
+.chip-img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.page-no { position: absolute; bottom: .7rem; left: 0; right: 0; text-align: center; font-family: var(--font-script); font-size: .85rem; color: var(--ink-soft); }
+.page-no::before { content: "— "; } .page-no::after { content: " —"; }
+.boss-detail { flex: 1; min-height: 0; overflow-y: auto; padding: 0 .4rem 1rem 0; perspective: 1600px; }
+.boss-detail.turning .boss-entry { animation: flip .55s ease; transform-origin: left center; }   /* page-turn when you pick another boss */
+.boss-entry { position: relative; padding: .2rem .2rem 2.6rem; }
+.boss-head { display: flex; align-items: center; justify-content: space-between; gap: .8rem; }
+.boss-head h3 { font-size: clamp(1.5rem, 1.1rem + 1.2vw, 2.1rem); }
+.boss-stats { display: flex; margin: .9rem 0 1.4rem; padding: .45rem 0; border-block: 1px dashed var(--ink-soft); }
+.boss-stats div { flex: 1; min-width: 0; text-align: center; line-height: 1.25; overflow-wrap: anywhere; }
+.boss-stats b { display: block; font-size: 1.1rem; }
+.boss-stats small { font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-soft); }
+.boss-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 1.8rem; align-items: start; }
+.note { margin-top: 1.4rem; font-family: var(--font-script); font-size: .95rem; line-height: 1.7; color: var(--note); transform: rotate(-.5deg); }  /* handwritten lore */
+.done-stamp { display: none; position: absolute; right: 8%; bottom: 14%; padding: .1rem .8rem; transform: rotate(-12deg); font-family: var(--font-script); font-size: 1.1rem; font-weight: 700; color: var(--stamp); background: rgba(244, 233, 207, .75); border: 3px solid var(--stamp); border-radius: 6px; pointer-events: none; }
+.is-defeated .done-stamp { display: block; }
+.mark { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; margin-top: 1rem; padding: .3rem .9rem .3rem .5rem; font-weight: 600; cursor: pointer; background: var(--paper); border: 2px solid var(--ink); border-radius: 8px; transition: background .2s; }
+.mark .box { display: grid; place-items: center; width: 26px; height: 26px; line-height: 1; color: transparent; background: var(--paper-hi); border: 2px solid var(--ink); border-radius: 5px; transition: background .2s, color .2s; }
+.mark[aria-pressed="true"] { background: var(--moss-tint); }
+.mark[aria-pressed="true"] .box { color: var(--on-honey); background: var(--honey); }
+/* Right column = ruled notebook paper. Line spacing is 1.9rem: change it in the 3 places marked below together. */
+.more-details { --rule: 1.9rem;   /* ruled-line spacing: change it here only */
+  padding: .95rem 0 0 1.2rem;   /* top padding lowers the text so each row sits on a ruled line */
+  line-height: var(--rule); border-left: 2px solid rgba(162, 74, 48, .35);
+  background: repeating-linear-gradient(to bottom, transparent 0 calc(var(--rule) - 1px), rgba(98, 121, 74, .3) calc(var(--rule) - 1px) var(--rule)) 0 .75rem / 100% 100%; }
+.more-details h4 { margin: 0; font-size: 1.05rem; line-height: var(--rule); }
+.more-details ul { margin: 0 0 var(--rule); padding-left: 1.1rem; }
+.more-details li { margin: 0; }
+.more-details .loot-row { margin: .3rem 0 1.3rem; }
+
+/* ==========================================================
+   8. CARD TABS: Structures, Basic Guide, Updates
+   ========================================================== */
+.card-body .badge { display: inline-block; margin-top: .8rem; }
+.grid { display: grid; gap: 1.2rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.card { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; width: 100%; padding: 0; overflow: hidden; text-align: left; cursor: pointer; background: var(--paper); border: 2px solid var(--ink); border-radius: 10px; box-shadow: 3px 4px 0 rgba(75, 58, 40, .35); transition: transform .15s; }
+.card:hover { transform: translateY(-2px); }
+.card-banner { position: relative; flex: none; aspect-ratio: 16 / 9; overflow: hidden; border-bottom: 2px solid var(--ink); background: radial-gradient(ellipse at 20% 130%, rgba(98, 121, 74, .55) 0 38%, transparent 39%), radial-gradient(ellipse at 70% 140%, rgba(98, 121, 74, .4) 0 40%, transparent 41%), linear-gradient(180deg, var(--banner-top), var(--moss-tint)); }
+/* Every card picture sits in the same 16:9 frame above the text and is cropped to fit. No file yet = coloured placeholder. */
+.card-banner img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.card-banner.has-img img { opacity: 1; }
+.card-banner:not(.has-img)::after { content: "Image placeholder"; position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-script); font-size: .85rem; color: var(--ink-soft); }
+.card-body { flex: 1; padding: 1rem 1.1rem 1.2rem; }
+.card-body h3 { font-size: 1.1rem; margin-bottom: .35rem; }
+.card-body p { color: var(--ink-soft); font-size: .95rem; }
+
+/* ==========================================================
+   9. PHOTOS TAB
+   ========================================================== */
+.photo-list { display: flex; flex-direction: column; gap: 2.8rem; max-width: 980px; margin: 0 auto; }
+.photo-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "photo text"; gap: 2.2rem; align-items: center; }
+.photo-row:nth-child(even) { grid-template-areas: "text photo"; }       /* every second entry flips: paragraph left, photo right */
+.photo-row-pic { grid-area: photo; margin: 0; }
+.photo-row-text { grid-area: text; }
+.photo-row-pic .photo { margin: 0 .5rem; }                             /* .photo = the taped frame */
+.photo-row:nth-child(even) .photo-row-pic .photo { transform: rotate(1deg); }
+.photo-row-pic figcaption { margin-top: .9rem; padding: 0 .5rem; font-family: var(--font-script); font-size: 1.1rem; color: var(--ink); }
+.photo-row:nth-child(even) .photo-row-pic figcaption { text-align: right; }   /* title sits under the photo, on the photo's side */
+.photo-row-text p { font-size: 1.05rem; line-height: 1.7; }
+.photo-row-text p + p { margin-top: .8rem; }
+.shot-frame { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 9; overflow: hidden; background: var(--paper); border: 2px solid var(--ink); }
+.shot-frame::after { content: "Photo placeholder"; font-family: var(--font-script); font-size: .85rem; color: var(--ink-soft); }
+.shot-frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: transform .25s; }
+.shot-frame.has-img { display: block; aspect-ratio: auto; }          /* a loaded photo keeps its own proportions */
+.shot-frame.has-img::after { display: none; }
+.shot-frame.has-img img { position: static; display: block; height: auto; opacity: 1; }
+@media (max-width: 700px) {   /* phones: photo + title first, paragraph underneath, always */
+  .photo-row, .photo-row:nth-child(even) { grid-template-columns: minmax(0, 1fr); grid-template-areas: "photo" "text"; gap: 1.2rem; }
+  .photo-row:nth-child(even) .photo-row-pic figcaption { text-align: left; }
+}
+
+/* ==========================================================
+   10. POP-UPS: the blurred window, pictures, boss full entry, structures and NPCs
+   ========================================================== */
+.loot-ico { width: 1.6rem; height: 1.6rem; margin-right: .45rem; object-fit: contain; vertical-align: middle; }
+body.modal-open { overflow: hidden; }
+.modal { position: fixed; inset: 0; z-index: 30; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: 1rem; }
+.modal[hidden] { display: none; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(54, 60, 56, .35); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); animation: fade .25s ease; }
+.modal-window { position: relative; width: min(640px, 100%); max-width: 100%; min-width: 0; background: var(--paper-hi); border: 2px solid var(--ink); border-radius: 10px; box-shadow: 5px 7px 0 rgba(75, 58, 40, .4); animation: pop .28s ease; }
+.modal-scroll { max-height: min(88vh, 900px); overflow-y: auto; border-radius: 8px; }
+.modal-close { position: absolute; top: .6rem; right: .6rem; z-index: 2; width: 34px; height: 34px; padding: 0; font-size: 0; cursor: pointer; background: var(--paper); border: 2px solid var(--ink); border-radius: 50%; transition: background .2s, transform .15s; }
+.modal-close::before, .modal-close::after { content: ""; position: absolute; top: 50%; left: 50%; width: 14px; height: 2px; margin: -1px 0 0 -7px; background: currentColor; border-radius: 1px; }   /* the X: two crossed bars, exactly centred */
+.modal-close::before { transform: rotate(45deg); }
+.modal-close::after { transform: rotate(-45deg); }
+.modal-close:active { transform: scale(.92); }
+@media (pointer: coarse) { .modal-close { width: 40px; height: 40px; } }   /* a little bigger on touch screens */
+.modal-close:hover { background: var(--honey); color: var(--on-honey); }
+.modal-window.lightbox { width: min(920px, 100%); }
+/* Photos tab zoom: only the picture floats over the blurred page (no frame, title or X). Click it to close. */
+.modal-window.bare { width: auto; background: none; border: 0; box-shadow: none; }
+.modal-window.bare .modal-close { display: none; }
+.modal-window.bare .modal-scroll { max-height: none; overflow: visible; }
+.modal-window.bare .lb-img { width: auto; min-width: min(72vw, 640px); max-width: 94vw; max-height: 88vh; margin: 0 auto; cursor: zoom-out; border-radius: 6px; box-shadow: 0 10px 40px rgba(0, 0, 0, .35); }
+.lb-body { padding: 1rem 1rem 1.1rem; }
+.lb-title { margin: 0 2.8rem .7rem 0; font-size: 1.35rem; }
+.lb-img { display: block; width: 100%; max-height: min(74vh, 820px); object-fit: contain; background: var(--paper); border: 2px solid var(--ink); border-radius: 6px; }
+.m-head { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: 1.2rem 3.2rem .4rem 1.25rem; }
+.m-head h3 { font-size: 1.5rem; }
+.detail { padding: 0 1.25rem 1.4rem; }
+.detail h4 { margin: 1.1rem 0 .35rem; font-size: 1.05rem; color: var(--amber-deep); }
+.gear { display: inline-block; margin-right: .4rem; padding: .1rem .7rem; font-weight: 700; color: #2b2205; background: var(--honey); border-radius: 8px; }
+.loot-wrap { overflow-x: auto; }
+.loot { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.loot th { padding: .3rem .4rem; text-align: left; font-weight: 600; color: var(--ink-soft); border-bottom: 2px solid var(--ink-soft); }
+.loot td { padding: .45rem .4rem; vertical-align: top; border-bottom: 1px solid var(--tan); }
+.modal-text { padding: 1rem 1.25rem 1.5rem; }
+.modal-text h3 { font-size: 1.45rem; }
+.modal-text > p { margin-top: .5rem; color: var(--ink-soft); }
+.modal-text h4 { margin-top: 1rem; color: var(--amber-deep); }
+.modal-text ul { margin: .5rem 0 0; padding-left: 1.2rem; }
+/* Text with a picture beside it (structure info, extra blocks, NPC descriptions, card sections) */
+.media { display: flex; align-items: flex-start; gap: 1rem; margin-top: .9rem; }
+.media-left { flex-direction: row-reverse; }          /* side: "left" puts the picture on the left */
+.media-text { flex: 1; min-width: 0; }
+.media-text h4 { margin-top: 0; }
+.media-text p { margin-top: .5rem; color: var(--ink-soft); }
+.media-pic { flex: 0 0 38%; width: 38%; height: auto; display: block; border: 2px solid var(--ink); border-radius: 6px; }
+@media (max-width: 559px) { .media, .media-left { flex-direction: column; } .media-pic { order: -1; flex-basis: auto; width: 100%; } }   /* phones: picture on top */
+
+.npc-list { display: flex; flex-direction: column; gap: .5rem; margin-top: .5rem; }
+.npc { background: var(--paper); border: 2px solid var(--ink); border-radius: 10px; transition: background .2s; }
+.npc[open] { background: var(--moss-tint); }
+.npc summary { display: flex; align-items: center; gap: .7rem; min-height: 48px; padding: .4rem .7rem; cursor: pointer; list-style: none; }
+.npc summary::-webkit-details-marker { display: none; }
+.npc summary::after { content: "▾"; margin-left: auto; color: var(--ink-soft); transition: transform .2s; }
+.npc[open] summary::after { transform: rotate(180deg); }
+.npc-name b { display: block; font-family: var(--font-display); font-size: 1rem; line-height: 1.25; }
+.npc-name small { color: var(--ink-soft); }
+.npc-desc { padding: .1rem .9rem .9rem .9rem; animation: fade .25s ease; }
+.npc-desc p { margin: 0; }
+.npc-desc .media { margin-top: 0; }
+.npc-desc .media-text p { margin: 0; color: var(--slate); }
+.npc-when { margin-top: .5rem; font-size: .9rem; color: var(--ink-soft); }
+
+/* ==========================================================
+   11. ANIMATIONS
+   ========================================================== */
+@keyframes bob { 50% { transform: translateY(-3px) rotate(8deg); } }
+@keyframes fade { from { opacity: 0; } }
+@keyframes pop { from { opacity: 0; transform: translateY(14px) scale(.97); } }
+@keyframes flip { from { opacity: .2; transform: rotateY(-80deg); } }
+
+/* ==========================================================
+   12. RESPONSIVE: tablets and phones (desktop is the default above)
+   ========================================================== */
+/* 900px and wider: the whole book fits the screen and lists scroll inside it.
+   Below 900px: a normal scrolling page and the tabs become hanging bookmarks above the book.
+   On desktop the tabs sit on the LEFT edge of the book. */
+@media (min-width: 900px) {
+  body { height: 100dvh; }
+  .sheet, .book-area, .frame { min-height: 0; }
+  .book-area { flex-direction: row; }
+  nav { width: 170px; margin-right: -14px; padding-top: 2.5rem; }
+  .site-header { padding-left: 156px; }   /* = tab width (170px) minus its overlap (14px): title, logo and IP line up over the book */
+  .panel { overflow-y: auto; }
+  .panel.fit { overflow: hidden; padding: 0; }
+  .boss-browser { height: 100%; }
+}
+@media (min-width: 900px) and (max-width: 1099px) {
+  nav { width: 140px; }
+  .site-header { padding-left: 126px; }
+  .boss-browser { grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); }
+  .boss-body { grid-template-columns: 1fr; }
+}
+@media (max-width: 899px) {
+  /* Categories become a grid of big, always-visible buttons (no sideways scrolling). */
+  nav { margin-bottom: .8rem; }
+  .tablist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .tab { display: flex; align-items: center; justify-content: center; gap: .45rem; width: 100%; min-height: 52px; padding: .45rem .6rem; text-align: center; font-size: .95rem; border: 2px solid var(--ink); border-radius: 12px; box-shadow: 2px 3px 0 rgba(75, 58, 40, .3); }
+  .tab:nth-child(odd):last-child { grid-column: 1 / -1; }
+  .tab:hover, .tab[aria-selected="true"] { transform: none; }
+  /* Boss browser: one column that always shrinks to the screen. */
+  .panel.fit { padding: 0; }
+  .boss-browser { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+  .contents, .boss-page { padding: 1rem .9rem; }
+  .boss-page::before { display: none; }
+  .boss-page { border-top: 2px dashed var(--ink-soft); }
+  .contents-list { flex: none; max-height: 28rem; overflow-y: auto; overflow-x: hidden; padding-bottom: .6rem; }
+  .contents-list li { width: 100%; }
+  .contents-item { min-width: 0; }
+  .boss-detail { overflow: visible; }
+  .boss-body { grid-template-columns: minmax(0, 1fr); }
+  .photo::before { left: -8px; } .photo::after { right: -8px; }
+  /* Same layout for every boss entry: loot in a neat 2-column grid (rows sit on the ruled lines). */
+  .loot-row, .more-details .loot-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 .6rem; margin: 0 0 var(--rule); }
+  .chip { width: auto; min-width: 0; min-height: 3.8rem; flex-direction: row; justify-content: flex-start; gap: .6rem; font-size: .8rem; line-height: 1.2; text-align: left; overflow-wrap: anywhere; }
+  .chip i { flex: none; }
+}
+@media (min-width: 600px) and (max-width: 899px) {
+  .tablist { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tab:nth-child(odd):last-child { grid-column: auto; }
+  .tab { font-size: .9rem; }
+}
+@media (max-width: 480px) {
+  .sheet { padding-inline: .6rem; }
+  .frame { padding: 12px; }
+  .panel { padding: 1rem .8rem; }
+  .contents, .boss-page { padding: .9rem .7rem; }
+  .tool { width: 42px; height: 42px; }
+  .site-footer { flex-direction: column; }
+}
+@media (max-width: 599px) {
+  /* Loot table in the full-entry pop-up: one compact block per item instead of 4 squeezed columns. */
+  .loot thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .loot, .loot tbody { display: block; }
+  .loot tr { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .25rem .6rem; padding: .6rem 0; border-bottom: 1px solid var(--tan); }
+  .loot td { display: block; padding: 0; border: 0; }
+  .loot td:last-child { grid-column: 1 / -1; font-size: .85rem; color: var(--ink-soft); }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BASIL's Journal</title>
+  <meta name="description" content="Boss strategies, progression, mechanics and rules for the Art Blk SMP Minecraft server.">
+  <!-- Light mode is the default; a visitor's saved choice is applied before the page paints, so there is no light flash in dark mode. -->
+  <script>var t="light";try{t=localStorage.getItem("artblk-theme")||"light"}catch(e){}document.documentElement.dataset.theme=t</script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!--
+    HOW THIS FILE WORKS
+    This file is only the page skeleton. All text and entries come from app.js (SITE, HOME, BOSSES, STRUCTURES, PHOTOS, CARDS),
+    all colours/fonts/layout from styles.css. You rarely need to edit this file.
+    Things you might change here: the <title> and description above, or the footer wording.
+
+    SAVED IN THE VISITOR'S OWN BROWSER (localStorage, no server or database involved):
+      artblk-theme    light / dark choice (also read by the little script in <head>)
+      artblk-music    set to "off" when the visitor turns the music off
+      artblk-defeated the list of boss ids ticked as defeated (the name is STORAGE_KEY in app.js, section 3)
+  -->
+  <a class="skip" href="#main">Skip to content</a>
+
+  <div class="sheet">
+    <!-- TITLE PLATE. Left: logo, name and season stamp. Right: music and dark-mode toggles.
+         Name and stamp are filled in from SITE in app.js. -->
+    <header class="site-header">
+      <div class="brand-block">
+        <div class="brand">
+          <!-- Logo placeholder (not clickable). Put an image path in SITE.logo to replace it. -->
+          <span class="logo" id="server-logo" aria-hidden="true">Logo</span>
+          <strong id="server-name">Server</strong>
+          <span class="stamp" id="season"></span>
+        </div>
+      </div>
+
+      <!-- TOP-RIGHT TOGGLES. Hover (or keyboard-focus) a button to see its tooltip.
+           The music file and title are set in SITE.music in app.js. -->
+      <div class="tools">
+        <button class="tool" id="music-toggle" type="button" aria-pressed="false" aria-label="Theme music"><span aria-hidden="true">🔇</span></button>
+        <button class="tool" id="theme-toggle" type="button"><span aria-hidden="true">🌙</span></button>
+      </div>
+    </header>
+    <!-- Theme music. src comes from SITE.music. app.js starts it as soon as the browser allows (see the music code). -->
+    <audio id="theme-audio" loop autoplay preload="auto"></audio>
+
+    <div class="book-area">
+      <!-- THE BOOK. The leather cover is .frame; the paper pages are <main>, where app.js builds each
+           tab's content. The four .corner spans are the brass corner guards (delete them to remove). -->
+      <div class="frame">
+        <span class="corner tl" aria-hidden="true"></span>
+        <span class="corner tr" aria-hidden="true"></span>
+        <span class="corner bl" aria-hidden="true"></span>
+        <span class="corner br" aria-hidden="true"></span>
+        <main id="main"></main>
+      </div>
+
+      <!-- INDEX TABS sticking out of the book's left edge (hanging bookmarks above the book on phones).
+           The tab buttons are created from TABS in app.js. -->
+      <nav aria-label="Wiki sections">
+        <div class="tablist" role="tablist" id="tablist" aria-label="Wiki sections"></div>
+      </nav>
+    </div>
+
+    <!-- FOOTER. Left text = SITE.footer. Right = the server IP (SITE.ip). -->
+    <footer class="site-footer">
+      <p id="footer-text"></p>
+      <p class="server-ip">🌐 Server IP: <span id="footer-ip"></span></p>
+    </footer>
+  </div>
+
+  <!-- POP-UP WINDOW. One shared window; app.js fills it when a card or "Read the full entry" is pressed.
+       The blurred backdrop is .modal-backdrop in styles.css. -->
+  <div class="modal" id="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
+      <button class="modal-close" type="button" data-close aria-label="Close window"></button>
+      <div class="modal-scroll" id="modal-content"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
