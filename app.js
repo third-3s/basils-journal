@@ -1,16 +1,11 @@
 /* ==========================================================
-   Art Blk SMP Wiki: app logic
-
-   EDIT YOUR CONTENT in sections 1-6: every tab has its own section, with its data AND its code together.
-   Save the file and refresh the page. Sections 7-8 are the engine; you rarely need to touch them.
-
    MAP (search for the heading)
     1. SITE SETTINGS ......... name, logo, server IP, footer, music, and the list of tabs
     2. HOME .................. the Home text
     3. BOSSES ................ boss entries, search + category buttons, boss page, saved "defeated" ticks
     4. STRUCTURES AND NPCs ... structure cards and their NPC lists
-    5. PHOTOS ................ photo + paragraph entries
-    6. BASIC GUIDE & UPDATES . the "cards" tabs
+    5. PHOTOS ................ the photo notebook: ruled pages, two zig-zag photo rows per spread, page turns
+    6. MECHANICS & UPDATES . the "cards" tabs
     7. SHARED CODE ........... helpers, pop-up window, dark-mode and music buttons
     8. PAGE BUILD & START .... builds the tabs, handles clicks, starts the page
 
@@ -25,28 +20,26 @@
    ========================================================== */
 
 const SITE = {
-  name: "BASIL's Journal",          // big name in the header and the browser tab title
-  season: "",                          // optional stamp next to the name (e.g. "Season 4"); "" hides it
-  logo: "img/mainlogo.png",          // picture left of the name; "" or a missing file shows a dashed "Logo" circle
-  ip: "139.99.38.79:25621",            // server address shown in the footer (one click selects it); "" hides it
-  footer: "Art Blk SMP Wiki. Community-maintained. Stats may change between seasons.",
-  // THEME MUSIC (music button at the top right). Put the sound file at `src`. `title` is what the button's hover tooltip
-  // says is playing. volume goes from 0 (silent) to 1 (full). Set src to "" to hide the button.
-  music: { src: "audio/theme.mp3", title: "Prontera 1 Hour - Ragnarok BGM Music", volume: 0.2 }
+  name: "BASIL's Journal",          
+  logo: "img/mainlogo.png",          
+  logoAlt: "img/mainlogoalt.png",
+  ip: "139.99.38.79:25621",            
+  footer: "BASIL's Journal. Information updated from time to time.",
+  music: { src: "audio/theme.mp3", title: "Pause, Bond", volume: 0.01 }
 };
 
 // TABS: the index tabs on the left edge of the book, in this order.
-//   id    : unique short name, also used in the URL (#guide). Letters, numbers and dashes only.
+//   id    : unique short name, also used in the URL (#mechanics). Letters, numbers and dashes only.
 //   label : text on the tab.
 //   type  : "home" | "bosses" | "structures" | "photos" | "cards"
-//   title / intro : heading and sentence shown above the cards or photos (not used by "home" and "bosses").
-// A "cards" tab (Basic Guide, Updates) needs a list with the SAME id inside CARDS in section 6.
+//   title / intro : heading and sentence shown above the cards or photos (not used by "home", "bosses" and "photos").
+// A "cards" tab (Mechanics, Updates) needs a list with the SAME id inside CARDS in section 6.
 const TABS = [
     { id: "home",       label: "Home",                type: "home" },
     { id: "bosses",     label: "Bosses",              type: "bosses" },
     { id: "structures", label: "Structures and NPCs", type: "structures", title: "Structures and NPCs",
       intro: "Landmarks of the server and the people you will meet there. Select a card to see who lives or visits." },
-    { id: "guide",      label: "Basic Guide",         type: "cards", title: "Basic Guide",
+    { id: "mechanics",  label: "Mechanics",           type: "cards", title: "Mechanics",
       intro: "The essentials for new players: fighting, levelling up and surviving the weather." },
     { id: "photos",     label: "Photos",              type: "photos", title: "Photos",
       intro: "Memories and builds from the server, with the story behind each one." },
@@ -60,10 +53,10 @@ const TABS = [
    ========================================================== */
 
 const HOME = {
-    title: "Welcome to Art Blk SMP",
+    title: "Welcome to my journal!",
     paragraphs: [
-      "This is the community guide for Art Blk SMP, a survival server with custom bosses, skills and world mechanics.",
-      "Use the tabs to find boss strategies, meet the NPCs, learn the basics and catch up on the latest updates."
+      "I've made notes to keep track of things on the server.",
+      "This journal provides a way to document my experiences and disco veries."
     ]
 };
 
@@ -72,237 +65,461 @@ const renderHome = () => {
   return `<div class="home"><h2>${esc(h.title)}</h2>${h.paragraphs.map((p) => `<p>${esc(p)}</p>`).join("")}</div>`;
 };
 
+
+
 /* ==========================================================
    3. BOSSES
    Boss data, then the code for the boss browser (Contents page, boss page, pop-ups, saved ticks).
    ========================================================== */
+// Lines (one string per line in a list):
+//   "text"        paragraph (in boss notes and recommendations: a bullet)
+//   "- text"       bullet            
+//   "1. text"      numbered step         
+//   "# text"       small heading
+//   "> text"       paragraph without a bullet (useful inside boss notes)
+//   **bold**      ==highlighted==      *cursive*       (they can be mixed: **==bold and highlighted==**)
+// Gradients (the first and last hex values create the starting and ending colors):
+//   "linear-gradient(135deg,#ffdab9,#ff9f43)"  orange
+//   "linear-gradient(135deg,#f3d9a4,#e6a15a)"  gold
+//   "linear-gradient(135deg,#cfe3dc,#9fc3bd)"  aqua
+//   "linear-gradient(135deg,#e8c9a8,#b97a56)"  brown
+//   "linear-gradient(135deg,#d8c8b5,#8b6f47)"  tan
+//   "linear-gradient(135deg,#f1b6b4,#9f3e52)"  red
+//   "linear-gradient(135deg,#cdb4db,#7a4fa3)"  purple
+//   "linear-gradient(135deg,#b9d7ee,#4a86b8)"  blue
+//   "linear-gradient(135deg,#bfe3c0,#5f9364)"  green
+//   "linear-gradient(135deg,#f0f0f0,#8a8a8a)"  gray
+//   "linear-gradient(135deg,#ffffff,#c4c4c4)"  white
+//   "linear-gradient(135deg,#9f9f9f,#181818)"  black
 
-// ---- BOSS ENTRIES (the Contents page and the boss pages are built from this list) ----
-// HOW TO ADD A BOSS: copy the TEMPLATE below, paste it after the last boss (don't forget the
-// comma between entries), uncomment it and fill in every field. To remove a boss, delete its block.
-// Order here = order in the Contents list, and sets the page numbers in the book.
-//
-// TEMPLATE
-// {
-//   id: "my-boss",                  // unique, lowercase, no spaces
-//   realm: "Monster Expansion",     // makes a filter button: Monster Expansion / Cataclysm / BOMD / Minecraft / Legendary Monster / anything new
-//   name: "My Boss",
-//   art: "linear-gradient(135deg,#dfe8c2,#b9c98f)",  // background shown behind / until the picture loads
-//   // image: "img/cataclysm/ignis.png", // OPTIONAL. By default the picture is img/<realm>/<id>.png
-//                                   // (realm in lowercase with dashes, e.g. img/monster-expansion/my-boss.png)
-//   health: "600 HP",
-//   tier: 2,                        // difficulty 1-5, shown as I-V
-//   armor: 10,                      // armor points (the Minecraft armor bar: 20 = full)
-//   lore: "Backstory shown as the handwritten note on the left page.",
-//   spawn: "How to summon it (shown in the full-entry window).",
-//   attacks: [ { name: "Slam", tell: "What to watch for and how to react." } ],   // add as many as you like
-//   gear: "Level 20",               // recommended-level badge
-//   gearNote: "Armor, potions, weapons...",
-//   loot: [ { item: "Item Name", rarity: "rare", chance: "8%", note: "What it does" } ]
-//                                   // loot icon: img/icons/<boss id>/<item name>.png (e.g. img/icons/ignis/molten-core.png),
-//                                   // or add image: "img/..." to an item. Missing file = no icon.
-//                                   // rarity: common | uncommon | rare | legendary
-// },
+const TIERS_INTRO = "A boss's tier shows how many players, and how strong, you need to defeat it.";
+const TIERS = [
+  { tier: 1, label: "Solo.", text: "Can be soloed with the right gear and class." },
+  { tier: 2, label: "Duo.", text: "Needs 2 players to defeat it." },
+  { tier: 3, label: "Full party.", text: "Needs a party of 4, each with their own specialization." },
+  { tier: 4, label: "Elite party.", text: "Everyone in the party needs to be strong enough to take it on." },
+  { tier: 5, label: "Beyond players.", text: "Players alone won't be enough to defeat this one." }
+];
+function tiersPopup() {
+  const rows = TIERS.map((t) => `<li><span class="tier-badge">${roman(t.tier)}</span><p><b>${rich(t.label)}</b> ${rich(t.text)}</p></li>`).join("");
+  return `
+    <div class="m-head"><h3 id="modal-title">Boss tiers</h3></div>
+    <div class="detail">
+      <p>${rich(TIERS_INTRO)}</p>
+      <ul class="tier-list">${rows}</ul>
+    </div>`;
+}
+
 const BOSSES = [
   {
-    id: "thornmother", realm: "Monster Expansion", name: "The Thornmother",
-    art: "linear-gradient(135deg,#dfe8c2,#b9c98f)",
-    health: "600 HP", tier: 2, armor: 8,
-    lore: "A stag-shaped tangle of briar and bone that wakes when a full sunflower ring is planted in a dark forest clearing.",
-    spawn: "Place 8 sunflowers around a Mossy Altar in a Dark Forest, then right-click the altar with a Thorn Heart at night.",
-    attacks: [
-      { name: "Bramble Sweep", tell: "Antlers glow green and she rears back. Sidestep left or right." },
-      { name: "Seed Barrage", tell: "Pods swell on her back. Strafe in a zigzag and use a shield." },
-      { name: "Rootsnare", tell: "Ground cracks in a circle under you. Jump or sprint out within 1 second." },
-      { name: "Wilt Phase", tell: "Below 30% health she heals from nearby plants. Clear grass and leaves first." }
+    id: "ignathos", realm: "Monster Expansion", name: "Ignathos",
+    art: "linear-gradient(135deg,#ffdab9,#ff9f43)",
+    image: "img/bosses/monster-expansion/ignathos.png",
+    health: "2500 HP", armor: 5, tier: 1,
+    lore: "A medium-sized avian beast with a fiery temper. Known for its vice-like claws that allows them to pull solid blocks.",
+    location: "Commonly found in Birch Forests, but can spawn in any forest biomes.",
+    notes: [
+      "One of the rare bosses that are naturally **neutral**, hurting them initiates the battle.",
+      "Its **head** and **arms** are breakable; breaking them makes them vulnerable in that spot and drops additional loot.",
+      "Its **tail** is **severable**; cutting it disables some movesets.",
+      "When enraged, it will occasionally grab ==flammable blocks== to consume them, ==empowering its attacks.==",
+      "An ignathos is resistant to fire but weak to **ice**.",
+      // "> Tip:"
     ],
-    gear: "Level 20", gearNote: "Iron or better armor, a shield and a bow. No special enchantments needed.",
+    recommendations: [
+      "Wear full ==diamond== armor, having protection enchantments is recommended.",
+      "Target their ==tail== first, it receives more damage.",
+      "Lure the monster to a flat area for easier dodging.",
+      "Avoid using Guard, it stuns you and leave you vulnerable to attacks, use ==Parry== instead or a shield to avoid the stun.",
+      "Dodging away from the anticipated attacks is the best way to avoid damage.",
+      // "*No special enchantments needed.*"
+    ],
     loot: [
-      { item: "Thorn Heart", rarity: "common", chance: "100%", note: "Reusable summoning key" },
-      { item: "Briarbound Bow", rarity: "uncommon", chance: "22%", note: "Poisons targets on full draw" },
-      { item: "Sunpetal Charm", rarity: "rare", chance: "8%", note: "Faster natural regeneration in daylight" },
-      { item: "Antler Crown", rarity: "legendary", chance: "1.5%", note: "Cosmetic helmet with plant aura" }
+      { item: "Monster Hardbone", quantity: "5 - 10", chance: "100%", note: "Sturdy bones dropped by large monsters.", image: "img/icons/monsterexpansion/monster_hardbone.png" },
+      { item: "Ignathos Hide", quantity: "5 - 10", chance: "100%", note: "Thick slab of fire-resistant hide stripped from the ignathos.", image: "img/icons/ignathos/ignathos_hide.png" },
+      { item: "Ignathos Feather", quantity: "5 - 10", chance: "100%", note: "Feathers plucked from the ignathos.", image: "img/icons/ignathos/ignathos_feather.png" },
+      { item: "Ignathos Talon", quantity: "2 - 4", chance: "75%", note: "Sharp talons ripped from the ignathos.", image: "img/icons/ignathos/ignathos_talon.png" },
+      { item: "Catalytic Ignition Crop", quantity: "1", chance: "25%", note: "The volatile organ the ignathos uses to ignite its internal furnace.", image: "img/icons/ignathos/catalytic_ignition_crop.png" },
+      { item: "Ignathos Tail", quantity: "1", chance: "Tail drop", note: "Ignathos's tail piece dropped by severing the beast's tail from its body.", image: "img/icons/ignathos/ignathos_tail.png" }                                
+    ]
+  },
+  {
+    id: "rhyza", realm: "Monster Expansion", name: "Rhyza",
+    art: "linear-gradient(135deg,#ffffff,#c4c4c4)",
+    image: "img/bosses/monster-expansion/rhyza.png",
+    health: "2500 HP", armor: 5, tier: 2,
+    lore: "Elusive chimeran native to the barren, floating islands of the End. Known for its speed and attacks that blind its prey.",
+    location: "End Islands.",
+    notes: [
+      "Its **head** and **arms** are breakable; breaking them makes them vulnerable in that spot and drops additional loot.",
+      "It has two **tails** and both are **severable**; cutting it disables some movesets.",
+      "Rhyzas excel at dealing damage over time through ==bleeding attacks==.",
+      "Rhyzas are resistant to ice but weak to **fire**.",
+      // "> Tip:"
+    ],
+    recommendations: [
+      "Wear ==enchanted diamond armor==, get passives and artifacts that increase your overall hp to tank the bleeding effect.",
+      "Rhyzas are fast and have ==disappearing properties==; so always be on the move as well.",
+      "Some if its attacks cause bleeding, avoid getting hit frequently and always monitor your health.",
+      "There's an audio cue that plays before a rhyza initiate its blinding attack; turn your camera around when you hear it to avoid being blinded.",
+      "A rhyza has ==two tails==, cut them both to disable its **blinding attacks**.",
+      // "*No special enchantments needed.*"
+    ],
+    loot: [
+      { item: "Monster Hardbone", quantity: "5 - 10", chance: "100%", note: "Sturdy bones dropped by large monsters.", image: "img/icons/monsterexpansion/monster_hardbone.png" },
+      { item: "Rhyza Fur", quantity: "10 - 20", chance: "100%", note: "A thick piece of fur dropped by the rhyza.", image: "img/icons/rhyza/rhyza_fur.png" },
+      { item: "Rhyza Scale", quantity: "5 - 10", chance: "100%", note: "A hard shard of scale dropped by the rhyza.", image: "img/icons/rhyza/rhyza_scale.png" },
+      { item: "Rhyza Carapace", quantity: "1 - 2", chance: "75%", note: "A hardened segment of exoskeleton dropped by the rhyza.", image: "img/icons/rhyza/rhyza_carapace.png" },
+      { item: "Rhyza Gleam Core", quantity: "1 - 2", chance: "75%", note: "A radiant core pulsing with blinding light.", image: "img/icons/rhyza/rhyza_gleam_core.png" },
+      { item: "Rhyza Claw", quantity: "2 - 6", chance: "75%", note: "Razor-sharp claw dropped by the rhyza.", image: "img/icons/rhyza/rhyza_claw.png" },
+      { item: "Serrated Sharpclaw", quantity: "1", chance: "25%", note: "A jagged claw from the rhyza, edged with unnatural precision.", image: "img/icons/rhyza/serrated_sharpclaw.png" },
+      { item: "Rhyza Tail", quantity: "1-2", chance: "Tail drop", note: "Rhyza's tail piece dropped by severing the beast's tail from its body.", image: "img/icons/rhyza/rhyza_tail.png" }                                
+    ]
+  },
+  {
+    id: "skrythe", realm: "Monster Expansion", name: "Skrythe",
+    art: "linear-gradient(135deg,#b9d7ee,#4a86b8)",
+    image: "img/bosses/monster-expansion/skrythe.png",
+    health: "7500 HP", armor: 5, tier: 3,
+    lore: "Highly territorial carnivorous wyverns. A skrythe's throat is capable of generating devastating, high-frequency vibrations.",
+    location: "Almost any biome in the Overworld.",
+    notes: [
+      "Its **head** and **wings** are breakable; breaking them makes them vulnerable in that spot and drops additional loot.",
+      "Its **tail** is **severable**; cutting it lessens the effectiveness of the skrythe's tail attacks.",
+      "A skrythe's roar has a ==wide range in front of it==; getting caught in it will cause ==heavy damage and stun you.==",
+      "Skrythes are **weak to ice damage**",
+      
+      // "> Tip:"
+    ],
+    recommendations: [
+      "Wear full ==netherite== armor enchanted with ==Prot IV== along with other sustaining perks and artifacts.",
+      "Hold your ==Guard skill== when infront of the skrythe to block its roar, you will be stunned but it's beter than taking damage.",
+      "Its charge attack is ==unblockable by any means==, so make sure to dodge away from it.",
+      "Its eyes glow red when enraged; be extra careful during that phase and prepare for its **ultimate**.",
+      "When a skrythe ==presses its mouth to the ground== during an enraged state, it is about to unleash its **ultimate**; back away immediately and have your guard up.",
+      // "*No special enchantments needed.*"
+    ],
+    loot: [
+      { item: "Monster Hardbone", quantity: "5 - 10", chance: "100%", note: "Sturdy bones dropped by large monsters.", image: "img/icons/monsterexpansion/monster_hardbone.png" },
+      { item: "Skrythe Armorplate", quantity: "10 - 20", chance: "100%", note: "A dense fragment of scale dropped from the skrythe.", image: "img/icons/skrythe/skrythe_armorplate.png" },
+      { item: "Skrythe Wing Membrane", quantity: "5 - 10", chance: "100%", note: "A torn stretch of wing membrane from the skrythe.", image: "img/icons/skrythe/skrythe_wing_membrane.png" },
+      { item: "Skrythe Fang", quantity: "1 - 2", chance: "75%", note: "Sharp fangs broken from the skrythe's jaw.", image: "img/icons/skrythe/skrythe_fang.png" },
+      { item: "Vocal Resonance Fold", quantity: "1", chance: "25%", note: "A magical fragment of the skrythe's throat, humming with the wyvern's lingering roar.", image: "img/icons/skrythe/vocal_resonance_fold.png" },
+      { item: "Skrythe Tail", quantity: "1", chance: "Tail drop", note: "Skrythe's tail piece dropped by severing the wyvern's tail from its body.", image: "img/icons/skrythe/skrythe_tail.png" }                                
+    ]
+  },
+  {
+    id: "rakoth", realm: "Monster Expansion", name: "Rakoth",
+    art: "linear-gradient(135deg,#b9d7ee,#4a86b8)",
+    image: "img/bosses/monster-expansion/rakoth.png",
+    health: "7500 HP", armor: 5, tier: 3,
+    lore: "Massive four-legged lacertian geovore known for its heavily armored and rocky shell covering its back.",
+    location: "Deserts and Badlands.",
+    notes: [
+      "Its **head** and **feet** are breakable; breaking them makes them vulnerable in that spot and drops additional loot.",
+      "Its **tail** is **severable**; cutting it lessens the effectiveness of the rakoth's tail attacks.",
+      "Rakoths attack slow but deal ==heavy damage==, but in their enraged state, they can gain massive speed by ==rolling themselves into a ball==; charging towards their targets.",
+      // "> Tip:"
+    ],
+    recommendations: [
+      "Wear full ==netherite== armor enchanted with ==Prot IV== along with other sustaining perks and artifacts.",
+      // "*No special enchantments needed.*"
+    ],
+    loot: [
+      { item: "Monster Hardbone", quantity: "5 - 10", chance: "100%", note: "Sturdy bones dropped by large monsters.", image: "img/icons/monsterexpansion/monster_hardbone.png" },
+      { item: "Rakoth Underplate", quantity: "6 - 12", chance: "100%", note: "A dense, scarred armor plate torn from the rakoth's underside.", image: "img/icons/rakoth/rakoth_underplate.png" },
+      { item: "Rakoth Carapace", quantity: "6 - 12", chance: "100%", note: "A hardened segment of exoskeleton dropped by the rakoth.", image: "img/icons/rakoth/rakoth_carapace.png" },
+      { item: "Rakoth Horn", quantity: "1 - 2", chance: "75%", note: "A jagged horn broken from the rakoth's crown.", image: "img/icons/rakoth/rakoth_horn.png" },
+      { item: "Bedrock Core", quantity: "1", chance: "25%", note: "A dense, ancient core formed under unimaginable pressure. It carries the unyielding strength of the earth.", image: "img/icons/rakoth/bedrock_core.png" },
+      { item: "Rakoth Tail", quantity: "1", chance: "Tail drop", note: "Rakoth's tail piece dropped by severing the beast's tail from its body.", image: "img/icons/rakoth/rakoth_tail.png" }                                
+    ]
+  },
+  {
+    id: "leivekilth", realm: "Monster Expansion", name: "Leivekilth",
+    art: "linear-gradient(135deg,#cfe3dc,#9fc3bd)",
+    image: "img/bosses/monster-expansion/leivekilth.png",
+    health: "15000 HP", armor: 5, tier: 4,  
+    lore: "A colossal, solitary therian bearing the traits of a walrus. Its tough hide and devastating ice attacks make it a formidable predator in the frozen biomes.",
+    location: "Frozen Oceans and Deep Frozen Oceans",
+    notes: [
+      "Its **head** and **arms** are breakable; breaking them makes them vulnerable in that spot and drops additional loot.",
+      "Its **tail** is **severable**; cutting it lessens the effectiveness of the leivekilth's tail attacks.",
+      "Leivekilths are **extremely weak to fire damage**",
+
+      // "> Tip:"
+    ],
+    recommendations: [
+      "Wear full ==netherite== armor, Prot IV is highly recommended. ",
+      "A leivekilth will start floating upside down and start unleashing ice attacks towards its targets, at the end of this attack the leivekilth will unleash its **ultimate**",
+      "Its **ultimate** has an ==absurd amount of range and damage==, make sure to clear the area before it is unleashed.",
+      // "*No special enchantments needed.*"
+    ],
+    loot: [
+      { item: "Monster Hardbone", quantity: "5 - 10", chance: "100%", note: "Sturdy bones dropped by large monsters.", image: "img/icons/monsterexpansion/monster_hardbone.png" },
+      { item: "Leivekilth Rimepelt", quantity: "5 - 10", chance: "100%", note: "A frost-laced pelt shed from the leivekilth.", image: "img/icons/leivekilth/leivekilth_rimepelt.png" },
+      { item: "Leivekilth Armorplate", quantity: "10 - 20", chance: "100%", note: "A dense fragment of scale dropped from the leivekilth.", image: "img/icons/leivekilth/leivekilth_armorplate.png" },
+      { item: "Leivekilth Tusk", quantity: "1 - 2", chance: "75%", note: "A massive, frozen tusk torn from the leivekilth.", image: "img/icons/leivekilth/leivekilth_tusk.png" },
+      { item: "Hoardfrost Shard", quantity: "4 - 8", chance: "75%", note: "A crystalline shard infused with biting hoarfrost dropped from the leivekilth.", image: "img/icons/leivekilth/hoarfrost_shard.png" },,
+      { item: "Deepfreeze Gland", quantity: "1", chance: "25%", note: "A subzero organ harvested from the Leivekilth. It secretes an essence cold enough to freeze steel solid.", image: "img/icons/leivekilth/deepfreeze_gland.png" },
+      { item: "Leivekilth Tail", quantity: "1", chance: "Tail drop", note: "Leivekilth's tail piece dropped by severing the beasts's tail from its body.", image: "img/icons/leivekilth/leivekilth_tail.png" }                                
+    ]
+  },
+  /* ================================================================================================================= */
+  {
+    id: "cinder-warden", realm: "Cataclysm", name: "Cinder Warden",
+    art: "linear-gradient(135deg,#f3d9a4,#e6a15a)",
+    image: "img/bosses/cataclysm/cinder-warden.png",
+    health: "1,400 HP", tier: 4, armor: 16,
+    location: "Always present in the Ashfall Citadel (Nether). It respawns 2 real-time hours after defeat.",
+    notes: [
+      // Free-form notes: every line is one bullet and YOU choose the formatting
+      // "**Magma Slam:** he raises both fists and the floor turns orange. ==Back away at least 6 blocks.==",
+      "",
+      "**Lava Pull:** a red chain appears. ==Break line of sight== behind a pillar.",
+      "# Obsidian Guard",
+      "His plates close and he takes **80% less damage**. *Back off and heal until they open again.*",
+      "> Tip: bring Fire Resistance II potions, the whole fight is fire damage."
+    ],
+    recommendations: [
+      "==Level 45==",
+      "Fire Resistance II potions, Protection III armor, 2 stacks of golden apples."
+    ],
+    loot: [
+      { item: "Obsidian Plate", rarity: "common", chance: "100%", note: "Crafting material for Warden gear", image: "img/icons/cinder-warden/obsidian_plate.png" },
+      { item: "Emberforged Axe", rarity: "rare", chance: "12%", note: "Ignites enemies on critical hits", image: "img/icons/cinder-warden/emberforged_axe.png" },
+      { item: "Warden's Core", rarity: "rare", chance: "6%", note: "Unlocks the Citadel vault", image: "img/icons/cinder-warden/warden_s_core.png" },
+      { item: "Cinder Wings", rarity: "legendary", chance: "0.8%", note: "Short controlled glide, fire immune", image: "img/icons/cinder-warden/cinder_wings.png" }
     ]
   },
   {
     id: "cinder-warden", realm: "Cataclysm", name: "Cinder Warden",
     art: "linear-gradient(135deg,#f3d9a4,#e6a15a)",
+    image: "img/bosses/cataclysm/cinder-warden.png",
     health: "1,400 HP", tier: 4, armor: 16,
-    lore: "A bastion guardian bound in obsidian plates. It patrols the Ashfall Citadel and attacks anyone who carries unclaimed relics.",
-    spawn: "Always present in the Ashfall Citadel (Nether). It respawns 2 real-time hours after defeat.",
-    attacks: [
-      { name: "Magma Slam", tell: "Raises both fists and the floor turns orange. Back away at least 6 blocks." },
-      { name: "Ember Volley", tell: "Chest vents flare. Fireballs follow in a fan. Block or strafe." },
-      { name: "Obsidian Guard", tell: "Plates close and he takes 80% less damage. Wait it out and heal." },
-      { name: "Lava Pull", tell: "A red chain appears. Break line of sight behind pillars." }
+    location: "Always present in the Ashfall Citadel (Nether). It respawns 2 real-time hours after defeat.",
+    notes: [
+      // Free-form notes: every line is one bullet and YOU choose the formatting
+      // "**Magma Slam:** he raises both fists and the floor turns orange. ==Back away at least 6 blocks.==",
+      "",
+      "**Lava Pull:** a red chain appears. ==Break line of sight== behind a pillar.",
+      "# Obsidian Guard",
+      "His plates close and he takes **80% less damage**. *Back off and heal until they open again.*",
+      "> Tip: bring Fire Resistance II potions, the whole fight is fire damage."
     ],
-    gear: "Level 45", gearNote: "Fire Resistance II potions, Protection III armor, 2 stacks of golden apples.",
+    recommendations: [
+      "==Level 45==",
+      "Fire Resistance II potions, Protection III armor, 2 stacks of golden apples."
+    ],
     loot: [
-      { item: "Obsidian Plate", rarity: "common", chance: "100%", note: "Crafting material for Warden gear" },
-      { item: "Emberforged Axe", rarity: "rare", chance: "12%", note: "Ignites enemies on critical hits" },
-      { item: "Warden's Core", rarity: "rare", chance: "6%", note: "Unlocks the Citadel vault" },
-      { item: "Cinder Wings", rarity: "legendary", chance: "0.8%", note: "Short controlled glide, fire immune" }
+      { item: "Obsidian Plate", rarity: "common", chance: "100%", note: "Crafting material for Warden gear", image: "img/icons/cinder-warden/obsidian_plate.png" },
+      { item: "Emberforged Axe", rarity: "rare", chance: "12%", note: "Ignites enemies on critical hits", image: "img/icons/cinder-warden/emberforged_axe.png" },
+      { item: "Warden's Core", rarity: "rare", chance: "6%", note: "Unlocks the Citadel vault", image: "img/icons/cinder-warden/warden_s_core.png" },
+      { item: "Cinder Wings", rarity: "legendary", chance: "0.8%", note: "Short controlled glide, fire immune", image: "img/icons/cinder-warden/cinder_wings.png" }
     ]
   },
   {
     id: "tide-king", realm: "Cataclysm", name: "The Drowned King",
     art: "linear-gradient(135deg,#cfe3dc,#9fc3bd)",
+    image: "img/bosses/cataclysm/tide-king.png",
     health: "900 HP", tier: 3, armor: 12,
     lore: "Once the ruler of a sunken kingdom, now a coral-crusted spirit that rises with the tide at ocean monuments.",
-    spawn: "Throw a Tidal Pearl into the Monument's central pool during rain.",
-    attacks: [
+    location: "Throw a Tidal Pearl into the Monument's central pool during rain.",
+    notes: [
       { name: "Riptide Charge", tell: "Trident spins and water swirls. Dodge sideways and avoid open water." },
       { name: "Summon Drowned", tell: "A horn sounds. Kill adds quickly or they swarm you." },
       { name: "Whirlpool", tell: "Surface sinks in a spiral. Swim up and out, and use Respiration." }
     ],
-    gear: "Level 30", gearNote: "Respiration III helmet, Depth Strider boots, Impaling or Sharpness weapon.",
+    recommendations: [
+      "==Level 30==",
+      "Respiration III helmet, Depth Strider boots, Impaling or Sharpness weapon."
+    ],
     loot: [
-      { item: "Tidal Pearl", rarity: "common", chance: "100%", note: "Key for rematch" },
-      { item: "Coral Shield", rarity: "uncommon", chance: "25%", note: "Blocks projectiles at a wider angle" },
-      { item: "Kingsong Trident", rarity: "rare", chance: "7%", note: "Lightning on throw, even without rain" },
-      { item: "Crown of Tides", rarity: "legendary", chance: "1%", note: "Permanent Water Breathing" }
+      { item: "Tidal Pearl", rarity: "common", chance: "100%", note: "Key for rematch", image: "img/icons/tide-king/tidal_pearl.png" },
+      { item: "Coral Shield", rarity: "uncommon", chance: "25%", note: "Blocks projectiles at a wider angle", image: "img/icons/tide-king/coral_shield.png" },
+      { item: "Kingsong Trident", rarity: "rare", chance: "7%", note: "Lightning on throw, even without rain", image: "img/icons/tide-king/kingsong_trident.png" },
+      { item: "Crown of Tides", rarity: "legendary", chance: "1%", note: "Permanent Water Breathing", image: "img/icons/tide-king/crown_of_tides.png" }
     ]
   },
   // ---- Placeholder bosses: BOMD, Minecraft and Legendary Monster (3 each). To add more to a category, copy a
   // block and keep the same `realm` text. A new realm name makes a new category button automatically.
   {
-    // PLACEHOLDER: replace everything below. Picture: img/bomd/bomd-1.png
+    // PLACEHOLDER: replace everything below.
     id: "bomd-1", realm: "BOMD", name: "BOMD Boss 1",
+    image: "img/bosses/bomd/bomd-1.png",
     health: "400 HP", tier: 1, armor: 6,
     lore: "Placeholder lore: describe this boss here.",
-    spawn: "Placeholder: explain how to summon or find this boss.",
-    attacks: [
+    location: "Placeholder: explain how to summon or find this boss.",
+    notes: [
       { name: "Placeholder attack", tell: "Placeholder: what to watch for and how to react." }
     ],
-    gear: "Level 10", gearNote: "Placeholder: recommended armor, weapons and potions.",
+    recommendations: [
+      "==Level 10==",
+      "Placeholder: recommended armor, weapons and potions."
+    ],
     loot: [
-      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does" }
+      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does", image: "img/icons/bomd-1/placeholder_drop.png" }
     ]
   },
   {
-    // PLACEHOLDER: replace everything below. Picture: img/bomd/bomd-2.png
+    // PLACEHOLDER: replace everything below.
     id: "bomd-2", realm: "BOMD", name: "BOMD Boss 2",
+    image: "img/bosses/bomd/bomd-2.png",
     health: "800 HP", tier: 2, armor: 10,
     lore: "Placeholder lore: describe this boss here.",
-    spawn: "Placeholder: explain how to summon or find this boss.",
-    attacks: [
+    location: "Placeholder: explain how to summon or find this boss.",
+    notes: [
       { name: "Placeholder attack", tell: "Placeholder: what to watch for and how to react." }
     ],
-    gear: "Level 20", gearNote: "Placeholder: recommended armor, weapons and potions.",
+    recommendations: [
+      "==Level 20==",
+      "Placeholder: recommended armor, weapons and potions."
+    ],
     loot: [
-      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does" }
+      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does", image: "img/icons/bomd-2/placeholder_drop.png" }
     ]
   },
   {
-    // PLACEHOLDER: replace everything below. Picture: img/bomd/bomd-3.png
+    // PLACEHOLDER: replace everything below.
     id: "bomd-3", realm: "BOMD", name: "BOMD Boss 3",
+    image: "img/bosses/bomd/bomd-3.png",
     health: "1,200 HP", tier: 3, armor: 14,
     lore: "Placeholder lore: describe this boss here.",
-    spawn: "Placeholder: explain how to summon or find this boss.",
-    attacks: [
+    location: "Placeholder: explain how to summon or find this boss.",
+    notes: [
       { name: "Placeholder attack", tell: "Placeholder: what to watch for and how to react." }
     ],
-    gear: "Level 30", gearNote: "Placeholder: recommended armor, weapons and potions.",
+    recommendations: [
+      "==Level 30==",
+      "Placeholder: recommended armor, weapons and potions."
+    ],
     loot: [
-      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does" }
+      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does", image: "img/icons/bomd-3/placeholder_drop.png" }
     ]
   },
   {
-    // PLACEHOLDER: replace everything below. Picture: img/minecraft/minecraft-1.png
+    // PLACEHOLDER: replace everything below.
     id: "minecraft-1", realm: "Minecraft", name: "Minecraft Boss 1",
+    image: "img/bosses/minecraft/minecraft-1.png",
     health: "400 HP", tier: 1, armor: 6,
     lore: "Placeholder lore: describe this boss here.",
-    spawn: "Placeholder: explain how to summon or find this boss.",
-    attacks: [
+    location: "Placeholder: explain how to summon or find this boss.",
+    notes: [
       { name: "Placeholder attack", tell: "Placeholder: what to watch for and how to react." }
     ],
-    gear: "Level 10", gearNote: "Placeholder: recommended armor, weapons and potions.",
+    recommendations: [
+      "==Level 10==",
+      "Placeholder: recommended armor, weapons and potions."
+    ],
     loot: [
-      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does" }
+      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does", image: "img/icons/minecraft-1/placeholder_drop.png" }
     ]
   },
   {
-    // PLACEHOLDER: replace everything below. Picture: img/minecraft/minecraft-2.png
+    // PLACEHOLDER: replace everything below.
     id: "minecraft-2", realm: "Minecraft", name: "Minecraft Boss 2",
+    image: "img/bosses/minecraft/minecraft-2.png",
     health: "800 HP", tier: 2, armor: 10,
     lore: "Placeholder lore: describe this boss here.",
-    spawn: "Placeholder: explain how to summon or find this boss.",
-    attacks: [
+    location: "Placeholder: explain how to summon or find this boss.",
+    notes: [
       { name: "Placeholder attack", tell: "Placeholder: what to watch for and how to react." }
     ],
-    gear: "Level 20", gearNote: "Placeholder: recommended armor, weapons and potions.",
+    recommendations: [
+      "==Level 20==",
+      "Placeholder: recommended armor, weapons and potions."
+    ],
     loot: [
-      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does" }
+      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does", image: "img/icons/minecraft-2/placeholder_drop.png" }
     ]
   },
   {
-    // PLACEHOLDER: replace everything below. Picture: img/minecraft/minecraft-3.png
+    // PLACEHOLDER: replace everything below.
     id: "minecraft-3", realm: "Minecraft", name: "Minecraft Boss 3",
+    image: "img/bosses/minecraft/minecraft-3.png",
     health: "1,200 HP", tier: 3, armor: 14,
     lore: "Placeholder lore: describe this boss here.",
-    spawn: "Placeholder: explain how to summon or find this boss.",
-    attacks: [
+    location: "Placeholder: explain how to summon or find this boss.",
+    notes: [
       { name: "Placeholder attack", tell: "Placeholder: what to watch for and how to react." }
     ],
-    gear: "Level 30", gearNote: "Placeholder: recommended armor, weapons and potions.",
+    recommendations: [
+      "==Level 30==",
+      "Placeholder: recommended armor, weapons and potions."
+    ],
     loot: [
-      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does" }
+      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does", image: "img/icons/minecraft-3/placeholder_drop.png" }
     ]
   },
   {
-    // PLACEHOLDER: replace everything below. Picture: img/minecraft/minecraft-4.png
+    // PLACEHOLDER: replace everything below.
     id: "minecraft-4", realm: "Minecraft", name: "Wither",
+    image: "img/bosses/minecraft/minecraft-4.png",
     health: "1,200 HP", tier: 3, armor: 14,
     lore: "Placeholder lore: describe this boss here.",
-    spawn: "Placeholder: explain how to summon or find this boss.",
-    attacks: [
+    location: "Placeholder: explain how to summon or find this boss.",
+    notes: [
       { name: "Placeholder attack", tell: "Placeholder: what to watch for and how to react." }
     ],
-    gear: "Level 30", gearNote: "Placeholder: recommended armor, weapons and potions.",
+    recommendations: [
+      "==Level 30==",
+      "Placeholder: recommended armor, weapons and potions."
+    ],
     loot: [
-      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does" }
+      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does", image: "img/icons/minecraft-4/placeholder_drop.png" }
     ]
   },
   {
-    // PLACEHOLDER: replace everything below. Picture: img/legendary-monster/legendary-monster-1.png
+    // PLACEHOLDER: replace everything below.
     id: "legendary-monster-1", realm: "Legendary Monster", name: "Legendary Monster 1",
+    image: "img/bosses/legendary-monster/legendary-monster-1.png",
     health: "400 HP", tier: 1, armor: 6,
     lore: "Placeholder lore: describe this boss here.",
-    spawn: "Placeholder: explain how to summon or find this boss.",
-    attacks: [
+    location: "Placeholder: explain how to summon or find this boss.",
+    notes: [
       { name: "Placeholder attack", tell: "Placeholder: what to watch for and how to react." }
     ],
-    gear: "Level 10", gearNote: "Placeholder: recommended armor, weapons and potions.",
+    recommendations: [
+      "==Level 10==",
+      "Placeholder: recommended armor, weapons and potions."
+    ],
     loot: [
-      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does" }
+      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does", image: "img/icons/legendary-monster-1/placeholder_drop.png" }
     ]
   },
   {
-    // PLACEHOLDER: replace everything below. Picture: img/legendary-monster/legendary-monster-2.png
+    // PLACEHOLDER: replace everything below.
     id: "legendary-monster-2", realm: "Legendary Monster", name: "Legendary Monster 2",
+    image: "img/bosses/legendary-monster/legendary-monster-2.png",
     health: "800 HP", tier: 2, armor: 10,
     lore: "Placeholder lore: describe this boss here.",
-    spawn: "Placeholder: explain how to summon or find this boss.",
-    attacks: [
+    location: "Placeholder: explain how to summon or find this boss.",
+    notes: [
       { name: "Placeholder attack", tell: "Placeholder: what to watch for and how to react." }
     ],
-    gear: "Level 20", gearNote: "Placeholder: recommended armor, weapons and potions.",
+    recommendations: [
+      "==Level 20==",
+      "Placeholder: recommended armor, weapons and potions."
+    ],
     loot: [
-      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does" }
+      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does", image: "img/icons/legendary-monster-2/placeholder_drop.png" }
     ]
   },
   {
-    // PLACEHOLDER: replace everything below. Picture: img/legendary-monster/legendary-monster-3.png
+    // PLACEHOLDER: replace everything below.
     id: "legendary-monster-3", realm: "Legendary Monster", name: "Legendary Monster 3",
+    image: "img/bosses/legendary-monster/legendary-monster-3.png",
     health: "1,200 HP", tier: 3, armor: 14,
     lore: "Placeholder lore: describe this boss here.",
-    spawn: "Placeholder: explain how to summon or find this boss.",
-    attacks: [
+    location: "Placeholder: explain how to summon or find this boss.",
+    notes: [
       { name: "Placeholder attack", tell: "Placeholder: what to watch for and how to react." }
     ],
-    gear: "Level 30", gearNote: "Placeholder: recommended armor, weapons and potions.",
+    recommendations: [
+      "==Level 30==",
+      "Placeholder: recommended armor, weapons and potions."
+    ],
     loot: [
-      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does" }
+      { item: "Placeholder Drop", rarity: "common", chance: "100%", note: "Placeholder: what it does", image: "img/icons/legendary-monster-3/placeholder_drop.png" }
     ]
   }
 ];
@@ -338,27 +555,26 @@ function refreshChecks() {
 // ---- Boss browser: search, category buttons, Contents list, boss page -------
 const state = { realm: "All", query: "", selected: BOSSES[0]?.id };
 const bossById = (id) => BOSSES.find((b) => b.id === id);
+// A note can be a plain string (free-form, with your own formatting) or { name, tell } (a bold name + text).
+const noteLine = (n) => (typeof n === "string" ? n : `**${n.name}:** ${n.tell}`);
 // Matches the search box against the boss name, realm, attack names and loot names.
 // A word that starts with @ filters by CATEGORY instead: "@monster" shows the category whose name STARTS with
-// "monster" (Monster Expansion), "@legendary" shows Legendary Monster, "@bomd @minecraft" shows both.
-// You can mix them with normal words: "@monster thorn".
 const matchesQuery = (b) => {
   const q = state.query;
   if (!q) return true;
   const words = q.split(/\s+/).filter(Boolean);
   const tags = words.filter((w) => w.startsWith("@")).map((w) => slug(w.slice(1)));
   if (tags.length && !tags.some((t) => slug(b.realm).startsWith(t))) return false;
-  const hay = [b.name, b.realm, ...(b.attacks || []).map((a) => a.name), ...(b.loot || []).map((l) => l.item)].join(" ").toLowerCase();
+  const hay = [b.name, b.realm, ...(b.notes || []).map((n) => noteLine(n).replace(/[*=#>]/g, "")), ...(b.loot || []).map((l) => l.item)].join(" ").toLowerCase();
   return words.filter((w) => !w.startsWith("@")).every((w) => hay.includes(w));
 };
 const visibleBosses = () => BOSSES.filter((b) => (state.realm === "All" || b.realm === state.realm) && matchesQuery(b));
 
-// Builds the left Contents column (filter buttons + list) and the empty book area on the right.
 function renderBossPanel() {
   const realms = ["All", ...new Set(BOSSES.map((b) => b.realm).filter(Boolean))];
   return `<div class="boss-browser">
     <aside class="contents" aria-label="Contents">
-      <h2 class="col-title">Contents</h2>
+      <div class="col-head"><h2 class="col-title">Contents</h2><button class="info-btn" type="button" data-open="tiers" aria-haspopup="dialog" aria-label="What do the tiers mean?" title="What do the tiers mean?">?</button></div>
       <label class="search"><span class="sr">Search bosses</span><input type="search" id="boss-search" placeholder="Search bosses… or @category" autocomplete="off" spellcheck="false"></label>
       <div class="seg" role="group" aria-label="Filter by realm">
         ${realms.map((r) => `<button type="button" data-realm="${esc(r)}" aria-pressed="${r === "All"}">${esc(r)}</button>`).join("")}
@@ -401,8 +617,8 @@ function renderBossEntry(animate = false) {
   const done = defeated.has(b.id);
   shownBossId = b.id;
   el.classList.remove("turning");
-  const attacks = b.attacks.map((a) => `<li><strong>${esc(a.name)}:</strong> ${esc(a.tell)}</li>`).join("");
-  const loot = b.loot.map((l) => `<div class="chip"><i class="r-${esc(l.rarity)}">${lootIcon(b, l, "chip-img")}</i>${esc(l.item)}</div>`).join("");
+  const notes = richBlocks((b.notes || []).map(noteLine), "li");   // every note = one bullet; bold / highlight / cursive are up to you
+  const loot = b.loot.map((l) => `<div class="chip"><i>${lootIcon(b, l, "chip-img")}</i>${esc(l.item)}</div>`).join("");
   el.innerHTML = `
     <div class="boss-entry${done ? " is-defeated" : ""}">
       <div class="boss-head">
@@ -416,13 +632,13 @@ function renderBossEntry(animate = false) {
       <div class="boss-body">
         <div class="boss-left">
           <figure class="photo"><button class="zoom" type="button" data-open="image" data-key="${esc(b.id)}" aria-haspopup="dialog" aria-label="Enlarge image of ${esc(b.name)}">${art(b)}</button><span class="done-stamp" aria-hidden="true">Defeated</span></figure>
-          <p class="note">${esc(b.lore)}</p>
+          <p class="note">${rich(b.lore)}</p>
           <button class="mark" type="button" data-check="${esc(b.id)}" aria-pressed="${done}"><span class="box" aria-hidden="true">✓</span><span class="mark-label">${done ? "Defeated" : "Mark as defeated"}</span></button>
         </div>
         <div class="more-details">
-          <h4>More Details</h4><ul>${attacks}</ul>
+          <h4>Information</h4>${notes}
           <h4>Loot drops</h4><div class="loot-row">${loot}</div>
-          <button class="btn" type="button" data-open="boss" data-key="${esc(b.id)}" aria-haspopup="dialog">Read the full entry</button>
+          <button class="btn" type="button" data-open="boss" data-key="${esc(b.id)}" aria-haspopup="dialog">More details</button>
         </div>
       </div>
       <span class="page-no">${page}</span>
@@ -460,20 +676,20 @@ function selectBoss(id) {
 }
 
 // ---- Boss pop-ups ("Read the full entry" and the enlarged picture) -----------
-// Pop-up opened by "Read the full entry": lore, spawn, gear and the full loot table.
+// Pop-up opened by "Read the full entry": lore, location, recommendations and the full loot table.
 function bossPopup(key) {
   const b = bossById(key);
   if (!b) return "";
-  const loot = b.loot.map((l) => `<tr><td>${lootIcon(b, l, "loot-ico")}${esc(l.item)}</td><td><span class="rarity r-${esc(l.rarity)}">${esc(l.rarity)}</span></td><td>${esc(l.chance)}</td><td>${esc(l.note)}</td></tr>`).join("");
+  // Icon + name stay together on one line (.loot-name); data-label is the small label shown next to the numbers on phones.
+  const loot = b.loot.map((l) => `<tr><td><span class="loot-name">${lootIcon(b, l, "loot-ico")}<span>${esc(l.item)}</span></span></td><td data-label="Qty">${esc(l.quantity || "1")}</td><td data-label="Chance">${esc(l.chance)}</td><td>${esc(l.note)}</td></tr>`).join("");
   return `
     <div class="m-head"><h3 id="modal-title">${esc(b.name)}</h3></div>
     <div class="detail">
-      <h4>Lore</h4><p>${esc(b.lore)}</p>
-      <h4>How to spawn</h4><p>${esc(b.spawn)}</p>
-      <h4>Recommended gear</h4><p><span class="gear">${esc(b.gear)}</span>${esc(b.gearNote)}</p>
+      <h4>Location</h4><p>${rich(b.location)}</p>
+      <h4>Notes & Recommendations</h4><div class="rich">${richBlocks(b.recommendations, "li")}</div>
       <h4>Loot &amp; drops</h4>
       <div class="loot-wrap"><table class="loot">
-        <thead><tr><th scope="col">Item</th><th scope="col">Rarity</th><th scope="col">Chance</th><th scope="col">Notes</th></tr></thead>
+        <thead><tr><th scope="col">Item</th><th scope="col">Quantity</th><th scope="col">Chance</th><th scope="col">Notes</th></tr></thead>
         <tbody>${loot}</tbody></table></div>
     </div>`;
 }
@@ -492,7 +708,7 @@ function bossImagePopup(key) {
 // ---- STRUCTURES & NPCs data -------------------------------------------------
 // HOW TO ADD A STRUCTURE: copy the whole Market block (from `{` to `},`), paste it after the last one and change the text.
 //   id        : unique short name              name / teaser : card heading and one-sentence summary
-//   image     : card + pop-up banner picture. Leave it out to use the default img/structures/<name>.png (see section 7)
+//   image     : card + pop-up banner picture. Leave it out to use the default img/structures/<name>.png
 //   info      : the short paragraph in the pop-up        infoImage : OPTIONAL picture beside it (infoImageSide: "left" flips it)
 //   location  : OPTIONAL line under the info             sections  : OPTIONAL extra blocks { title, text, image, side }
 // HOW TO ADD AN NPC: copy one { ... } block inside `npcs` (commas between blocks).
@@ -503,16 +719,16 @@ function bossImagePopup(key) {
 // (Sample content: replace it.)
 const STRUCTURES = [
   {
-    id: "market", name: "Market", image: "img/structures/market.png",
-    teaser: "The trading hub of Art Blk SMP, with stalls, a smithy and travelling merchants.",
-    info: "The busiest spot on the server. Sell your boss loot, repair gear and stock up on supplies. Residents are always around; visitors only drop by now and then.",
+    id: "market", name: "Market Market", image: "img/structures/market.png",
+    teaser: "The main trading hub in the Art Blk SMP, Guild Master and his associates reside here.",
+    info: "Market Market is the place for starting to players to ",
     infoImage: "img/structures/market-square.png",   // OPTIONAL: picture beside the info text (delete the line if unused)
-  location: "Spawn plaza, just north of the Sunflower Gate",
+  location: "World Spawn (-290.00 -273.50)", 
   sections: [   // OPTIONAL: extra text blocks, each with an optional picture beside it (delete the block if unused)
     { title: "The stalls", text: "Placeholder text: describe what the stalls sell. The picture sits beside this text.", image: "img/structures/market-stalls.png" }
   ],
     npcs: [
-      { name: "Marigold", role: "Head merchant", category: "Permanent resident", image: "img/npcs/marigold.png",
+      { name: "Oshaune", role: "Coin Trader", category: "Permanent resident", image: "img/npcs/marigold.png",
         description: "Runs the largest stall and buys most boss drops at fair prices. Ask her about daily trades." },
       { name: "Old Tobias", role: "Blacksmith", category: "Permanent resident",
         description: "Repairs and upgrades gear. He pays extra for Obsidian Plates and other crafting materials." },
@@ -580,33 +796,117 @@ function structurePopup(key) {
 
 /* ==========================================================
    5. PHOTOS
-   The Photos tab: photo + title on one side, paragraph on the other, alternating.
+   The Photos tab: a ruled notebook. Each spread has two rows (photo + its paragraph) that zig-zag across the pages.
    ========================================================== */
 
 // ---- PHOTOS data -----------------------------------------------------------
-// Entries alternate sides:  1st, 3rd ... photo left + paragraph right;  2nd, 4th ... paragraph left + photo right.
-// HOW TO ADD A PHOTO: copy one { ... } block below (commas between blocks). Order here = order on the page.
-//   title : short title under the photo frame
-//   image : the picture path. Leave it out to use the default img/photos/<title>.png
-//   text  : the paragraph. For several paragraphs use a list:  text: ["First paragraph.", "Second paragraph."]
-//   A missing file shows a "Photo placeholder" frame. Clicking a photo opens it large. (Sample text: replace it.)
+// Entries fill the notebook in order, PHOTOS_PER_SPREAD per spread. Each entry is one ROW across the two pages and the rows zig-zag:
+//   row 1: photo on the left page, its paragraph on the right page
+//   row 2: paragraph on the left page, photo on the right page
+// On phones the pages become one column: photo, its paragraph, next photo, its paragraph.
+// Visitors turn pages with the buttons or the left / right arrow keys.
+const PHOTOS_PER_SPREAD = 2;   // photos per spread = rows across the two pages. 2 fits the screen best.
 const PHOTOS = [
   { title: "First sunrise at spawn", image: "img/photos/first-sunrise-at-spawn.png", text: "Placeholder paragraph: describe what is happening in this photo, who is in it and why it matters." },
+  { title: "The first builds", image: "img/photos/the-first-builds.png", text: "Placeholder paragraph: add the story behind this photo here." },
+  { title: "Down the first boss", image: "img/photos/down-the-first-boss.png", text: "Placeholder paragraph: another memory from the server." },
+  { title: "Community builds", image: "img/photos/community-builds.png", text: ["Placeholder paragraph: who built it and what makes it special.", "A second paragraph can go here if you need one."] },
+  { title: "The first builds", image: "img/photos/the-first-builds.png", text: "Placeholder paragraph: add the story behind this photo here." },
+  { title: "Down the first boss", image: "img/photos/down-the-first-boss.png", text: "Placeholder paragraph: another memory from the server." },
+  { title: "Community builds", image: "img/photos/community-builds.png", text: ["Placeholder paragraph: who built it and what makes it special.", "A second paragraph can go here if you need one."] },
+  { title: "The first builds", image: "img/photos/the-first-builds.png", text: "Placeholder paragraph: add the story behind this photo here." },
+  { title: "Down the first boss", image: "img/photos/down-the-first-boss.png", text: "Placeholder paragraph: another memory from the server." },
+  { title: "Community builds", image: "img/photos/community-builds.png", text: ["Placeholder paragraph: who built it and what makes it special.", "A second paragraph can go here if you need one."] },
+  { title: "The first builds", image: "img/photos/the-first-builds.png", text: "Placeholder paragraph: add the story behind this photo here." },
+  { title: "Down the first boss", image: "img/photos/down-the-first-boss.png", text: "Placeholder paragraph: another memory from the server." },
+  { title: "Community builds", image: "img/photos/community-builds.png", text: ["Placeholder paragraph: who built it and what makes it special.", "A second paragraph can go here if you need one."] },
+  { title: "The first builds", image: "img/photos/the-first-builds.png", text: "Placeholder paragraph: add the story behind this photo here." },
+  { title: "Down the first boss", image: "img/photos/down-the-first-boss.png", text: "Placeholder paragraph: another memory from the server." },
+  { title: "Community builds", image: "img/photos/community-builds.png", text: ["Placeholder paragraph: who built it and what makes it special.", "A second paragraph can go here if you need one."] },
+  { title: "The first builds", image: "img/photos/the-first-builds.png", text: "Placeholder paragraph: add the story behind this photo here." },
+  { title: "Down the first boss", image: "img/photos/down-the-first-boss.png", text: "Placeholder paragraph: another memory from the server." },
+  { title: "Community builds", image: "img/photos/community-builds.png", text: ["Placeholder paragraph: who built it and what makes it special.", "A second paragraph can go here if you need one."] },
+  { title: "The first builds", image: "img/photos/the-first-builds.png", text: "Placeholder paragraph: add the story behind this photo here." },
+  { title: "Down the first boss", image: "img/photos/down-the-first-boss.png", text: "Placeholder paragraph: another memory from the server." },
+  { title: "Community builds", image: "img/photos/community-builds.png", text: ["Placeholder paragraph: who built it and what makes it special.", "A second paragraph can go here if you need one."] },
+  { title: "The first builds", image: "img/photos/the-first-builds.png", text: "Placeholder paragraph: add the story behind this photo here." },
+  { title: "Down the first boss", image: "img/photos/down-the-first-boss.png", text: "Placeholder paragraph: another memory from the server." },
+  { title: "Community builds", image: "img/photos/community-builds.png", text: ["Placeholder paragraph: who built it and what makes it special.", "A second paragraph can go here if you need one."] },
   { title: "The first builds", image: "img/photos/the-first-builds.png", text: "Placeholder paragraph: add the story behind this photo here." },
   { title: "Down the first boss", image: "img/photos/down-the-first-boss.png", text: "Placeholder paragraph: another memory from the server." },
   { title: "Community builds", image: "img/photos/community-builds.png", text: ["Placeholder paragraph: who built it and what makes it special.", "A second paragraph can go here if you need one."] }
 ];
 
-const renderPhoto = (p, i) => {
+// ---- The notebook: each spread = PHOTOS_PER_SPREAD rows across two ruled pages, with a page-turn between spreads ----
+const photoBook = { spread: 0 };   // which spread is open (0 = the first)
+const photoSpreadCount = () => Math.ceil(PHOTOS.length / PHOTOS_PER_SPREAD);
+
+// The empty notebook (spread + Previous / Next buttons). showPhotoSpread() fills it.
+function renderPhotoBook() {
+  if (!PHOTOS.length) return `<p class="empty">No photos yet.</p>`;
+  const total = photoSpreadCount();   // the "Page 1 of 14" label is a menu: pick a page to jump to it
+  const options = Array.from({ length: total }, (_, i) => `<option value="${i}">Page ${i + 1} of ${total}</option>`).join("");
   return `
-  <article class="photo-row">
-    <figure class="photo-row-pic">
-      <div class="photo"><button class="zoom" type="button" data-open="photo" data-key="${i}" aria-haspopup="dialog" aria-label="Enlarge photo: ${esc(p.title)}" disabled><div class="shot-frame"><img src="${esc(cardImg(p, "photos", p.title))}" alt="${esc(p.title)}" onload="this.parentNode.classList.add('has-img'); this.closest('button').disabled = false" onerror="this.remove()"></div></button></div>
-      <figcaption>${esc(p.title)}</figcaption>
-    </figure>
-    <div class="photo-row-text">${toParas(p.text)}</div>
-  </article>`;
+  <div class="notebook">
+    <div class="nb-spread" id="photo-spread" aria-live="polite"></div>
+    <div class="nb-nav">
+      <button class="btn nb-turn" type="button" data-photo-turn="-1" aria-label="Previous page"><span aria-hidden="true">&larr;</span><span class="nb-word" aria-hidden="true"> Previous</span></button>
+      <label class="nb-count"><span class="sr">Jump to page</span><select id="photo-jump">${options}</select></label>
+      <button class="btn nb-turn" type="button" data-photo-turn="1" aria-label="Next page"><span class="nb-word" aria-hidden="true">Next </span><span aria-hidden="true">&rarr;</span></button>
+    </div>
+  </div>`;
+}
+
+// One photo with its title label (click the photo to enlarge it). `order` = its place in the phone layout (photo, text, photo, text...).
+const photoBand = (g, order) => {
+  const p = PHOTOS[g];
+  return `
+    <div class="nb-band nb-pic${order > 1 ? " nb-lower" : ""}" style="order:${order}">
+      <div class="photo"><button class="zoom" type="button" data-open="photo" data-key="${g}" aria-haspopup="dialog" aria-label="Enlarge photo: ${esc(p.title)}" disabled><div class="shot-frame"><img src="${esc(cardImg(p, "photos", p.title))}" alt="${esc(p.title)}" onload="this.parentNode.classList.add('has-img'); this.closest('button').disabled = false" onerror="this.remove()"></div></button></div>
+      <p class="nb-title"><span>${esc(p.title)}</span></p>
+    </div>`;
 };
+// The paragraph(s) of one photo, written on the ruled lines.
+const textBand = (g, order) => `<div class="nb-band nb-text${order > 1 ? " nb-lower" : ""}" style="order:${order}">${toParas(PHOTOS[g].text)}</div>`;
+
+// Draws the open spread. dir: 1 = turned forward, -1 = turned back (plays the page-turn), 0 = first draw.
+function showPhotoSpread(dir = 0) {
+  const el = $("photo-spread");
+  if (!el) return;
+  const s = photoBook.spread, first = s * PHOTOS_PER_SPREAD;
+  const left = [], right = [];
+  for (let g = first, row = 0; g < Math.min(first + PHOTOS_PER_SPREAD, PHOTOS.length); g++, row++) {
+    const pic = photoBand(g, row * 2), text = textBand(g, row * 2 + 1);
+    if (row % 2 === 0) { left.push(pic); right.push(text); }   // even rows: photo left, paragraph right
+    else { left.push(text); right.push(pic); }                  // odd rows: the other way round
+  }
+  el.innerHTML = `
+    <div class="nb-page nb-left">${left.join("")}</div>
+    <div class="nb-page nb-right">${right.join("")}</div>`;
+  el.classList.remove("turn-next", "turn-prev");
+  if (dir) { void el.offsetWidth; el.classList.add(dir > 0 ? "turn-next" : "turn-prev"); }
+  $("photo-jump").value = String(s);   // one spread = one page; the menu between the buttons shows which one is open
+  const buttons = [...main.querySelectorAll("[data-photo-turn]")];
+  buttons.forEach((b) => { b.disabled = Number(b.dataset.photoTurn) < 0 ? s === 0 : s === photoSpreadCount() - 1; });
+  if (document.activeElement?.disabled) buttons.find((b) => !b.disabled)?.focus();   // keep keyboard focus on a working button
+}
+
+// Jump straight to a page (spread) number, 0 = the first. Plays the page-turn in the right direction.
+function jumpPhotoPage(target) {
+  const to = Math.max(0, Math.min(photoSpreadCount() - 1, Number(target) || 0));
+  if (to === photoBook.spread) return;
+  const dir = to > photoBook.spread ? 1 : -1;
+  photoBook.spread = to;
+  showPhotoSpread(dir);
+}
+
+// Turn one spread forward (1) or back (-1). Does nothing past the first or last spread.
+function turnPhotoPage(dir) {
+  const next = photoBook.spread + dir;
+  if (next < 0 || next >= photoSpreadCount()) return;
+  photoBook.spread = next;
+  showPhotoSpread(dir);
+}
 
 function photoPopup(key) {
   const p = PHOTOS[Number(key)];
@@ -617,25 +917,36 @@ function photoPopup(key) {
 }
 
 /* ==========================================================
-   6. BASIC GUIDE & UPDATES
+   6. MECHANICS & UPDATES
    The "cards" tabs: each card opens a pop-up with its details.
    ========================================================== */
 
 // ---- CARD data ----------------------------------------------------------------
-// One list per "cards" tab; the key (guide / updates) must match the tab `id` in TABS.
+// One list per "cards" tab; the key (mechanics / updates) must match the tab `id` in TABS.
 // HOW TO ADD A CARD: copy one { ... } block into the right list (commas between blocks).
-//   title    : card heading                 teaser : one-sentence summary on the card and at the top of the pop-up
-//   image    : the card + pop-up banner picture. Leave it out to use the default img/<tab id>/<title>.png (see section 7)
-//   sections : OPTIONAL text blocks in the pop-up, each with an optional picture beside it: { title, text, image, side }
-//   topics   : the bullet list in the pop-up
+//   title   : card heading                 teaser : one-sentence summary on the card and at the top of the pop-up
+//   image   : the card + pop-up banner picture. Leave it out to use the default img/<tab id>/<title>.png (see section 7)
+//   content : the pop-up body, written however you like: a list of lines where you choose paragraphs, "- " bullets, "1. " steps,
+//             "# " headings, **bold**, ==highlight==, *cursive*, and { image, caption } taped photos. See WRITING STYLE in section 7;
+//             the "Combat Skills" card below is a sample.
+//   topics  : OPTIONAL shortcut instead of content: just a bullet list
 // (Sample text: replace it with your real guides and patch notes.)
 const CARDS = {
-  guide: [
+  mechanics: [
     { title: "Combat Skills", image: "img/guide/combat-skills.png", teaser: "Weapon skills, dodging and how to get the most out of every fight.",
-      sections: [   // OPTIONAL: text blocks with a picture beside them in the pop-up (delete the block if unused)
-        { title: "Dodging", text: "Placeholder text: explain how dodging works. The picture sits beside this text.", image: "img/guide/combat-dodging.png" }
-      ],
-      topics: ["Melee, ranged and magic skills", "Dodging and blocking", "Combos and cooldowns"] },
+      content: [   // SAMPLE of the free-form style: you decide what is a paragraph, a list, bold, highlighted or cursive
+        "# How combat works",
+        "Every fight rewards **timing** over button-mashing. *Watch the telegraph, then strike.*",
+        { image: "img/guide/combat-dodging.png", caption: "Dodging an attack" },
+        "# The basics",
+        "- **Melee, ranged and magic** skills each have their own tree",
+        "- ==Dodging and blocking== both use stamina",
+        "- Combos and cooldowns reset when you are hit",
+        "# A good rhythm",
+        "1. Lock on to your target",
+        "2. Dodge the attack",
+        "3. Hit back while they recover"
+      ] },
     { title: "Skill Trees", image: "img/guide/skill-trees.png", teaser: "Choose a path, spend your points and unlock new perks.",
       topics: ["How skill points are earned", "Available paths", "Perks unlocked at each level"] },
     { title: "Temperature", image: "img/guide/temperature.png", teaser: "Stay warm in the cold and cool in the heat to avoid taking damage.",
@@ -657,19 +968,20 @@ const renderCard = (item, tabId, i) => `
     <div class="card-body"><h3>${esc(item.title)}</h3><p>${esc(item.teaser)}</p></div>
   </button>`;
 
-// Pop-up for a Basic Guide / Updates card: picture banner, summary, optional text+picture blocks, then the bullet list.
+// Pop-up for a Mechanics / Updates card: picture banner, summary, optional text+picture blocks, then the bullet list.
 function cardPopup(key) {
   const [tabId, i] = key.split(":");
   const item = (CARDS[tabId] || [])[Number(i)];
   if (!item) return "";
-  const topics = (item.topics || []).map((p) => `<li>${esc(p)}</li>`).join("");
+  const topics = (item.topics || []).map((p) => `<li>${rich(p)}</li>`).join("");   // older, simple form: just a bullet list
+  const body = item.content ? `<div class="rich">${richBlocks(item.content, "p")}</div>` : (topics ? `<h4>What's inside</h4><ul>${topics}</ul>` : "");
   return `
-    ${cardBanner(cardImg(item, tabId, item.title), item.title)}
+    ${cardBanner(cardImg(item, tabId, item.title), item.title, true)}
     <div class="modal-text">
       <h3 id="modal-title">${esc(item.title)}</h3>
-      <p>${esc(item.teaser)}</p>
+      <p>${rich(item.teaser)}</p>
       ${(item.sections || []).map(mediaBlock).join("")}
-      ${topics ? `<h4>What's inside</h4><ul>${topics}</ul>` : ""}
+      ${body}
     </div>`;
 }
 
@@ -685,23 +997,50 @@ const roman = (n) => ["", "I", "II", "III", "IV", "V"][n] || n;
 const slug = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");   // "Update 1.0" -> "update-1-0"
 const toParas = (t) => (Array.isArray(t) ? t : [t]).filter(Boolean).map((p) => `<p>${esc(p)}</p>`).join("");   // one string or a list -> <p> tags
 
+
+const rich = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/==(.+?)==/g, '<mark class="hl">$1</mark>').replace(/\*(.+?)\*/g, '<em class="cursive">$1</em>');
+
+// A taped photo with an optional title label, like the Photos tab (shows a placeholder until the picture file exists). Click it to enlarge.
+const pictureHtml = (p) => `
+  <figure class="pic">
+    <div class="photo"><button class="zoom" type="button" data-zoom="${esc(p.image)}" data-alt="${esc(p.caption || "")}" aria-label="Enlarge picture${p.caption ? ": " + esc(p.caption) : ""}" disabled><div class="shot-frame"><img src="${esc(p.image)}" alt="${esc(p.caption || "")}" onload="this.parentNode.classList.add('has-img'); this.closest('button').disabled = false" onerror="this.remove()"></div></button></div>
+    ${p.caption ? `<p class="pic-title"><span>${rich(p.caption)}</span></p>` : ""}
+  </figure>`;
+
+// Turns a list of lines (strings and { image, caption } pictures) into HTML. defaultKind: "p" = paragraphs (cards), "li" = bullets (boss notes).
+function richBlocks(lines, defaultKind = "p") {
+  const out = [];
+  let list = null;
+  const flush = () => { if (list) { out.push(`<${list.tag}>${list.items.map((x) => `<li>${x}</li>`).join("")}</${list.tag}>`); list = null; } };
+  const item = (tag, html) => { if (!list || list.tag !== tag) { flush(); list = { tag, items: [] }; } list.items.push(html); };
+  [].concat(lines || []).forEach((raw) => {
+    if (raw && typeof raw === "object") { flush(); if (raw.image) out.push(pictureHtml(raw)); return; }
+    const t = String(raw);
+    let m;
+    if ((m = t.match(/^#\s+(.*)/))) { flush(); out.push(`<h4>${rich(m[1])}</h4>`); }
+    else if ((m = t.match(/^-\s+(.*)/))) item("ul", rich(m[1]));
+    else if ((m = t.match(/^\d+[.)]\s+(.*)/))) item("ol", rich(m[1]));
+    else if ((m = t.match(/^>\s+(.*)/))) { flush(); out.push(`<p>${rich(m[1])}</p>`); }
+    else if (defaultKind === "li") item("ul", rich(t));
+    else { flush(); out.push(`<p>${rich(t)}</p>`); }
+  });
+  flush();
+  return out.join("");
+}
+
 // BOSS PICTURES: a boss uses its `image` path if it has one, otherwise img/<category>/<boss id>.png (e.g. img/cataclysm/ignis.png).
-// If the file is missing the picture hides itself and only the background colour shows.
 const bossImg = (b) => b.image || `img/${slug(b.realm)}/${slug(b.id)}.png`;
-// Loot icon: img/icons/<boss id>/<item name>.png unless the item has its own `image`. Missing file = icon hides itself.
+// Loot icon: img/icons/<boss id>/<item name>.png
 const lootImg = (b, l) => l.image || `img/icons/${slug(b.id)}/${slug(l.item)}.png`;
 const lootIcon = (b, l, cls) => `<img class="${cls}" src="${esc(lootImg(b, l))}" alt="" onerror="this.hidden=true">`;
 const art = (b) => `<div class="art"${b.art ? ` style="--art:${esc(b.art)}"` : ""}><img src="${esc(bossImg(b))}" alt="${esc(b.name)}" loading="lazy" onerror="this.hidden=true"></div>`;
 
-// CARD PICTURES (Structures, Basic Guide, Updates, Photos). A card uses its `image` path if it has one.
+// CARD PICTURES (Structures, Mechanics, Updates, Photos). A card uses its `image` path if it has one.
 // If it has none, the default is  img/<tab id>/<card name, lowercase with dashes>.png
 //   e.g. the "Market" card on the "structures" tab -> img/structures/market.png, "Update 1.0" on "updates" -> img/updates/update-1-0.png
-// That is the only reason for that path: it is just a naming rule, so you do not have to type a path for every card.
-// Set `image: "img/anything/you-like.jpg"` on any card to use a different folder, file name or format (png, jpg, webp ...),
-// or a full web address. Use forward slashes, and match the file name exactly (hosting is case-sensitive).
-// No file at that path = no picture, just the thin banner. The same picture is used on the card and at the top of its pop-up.
 const cardImg = (item, folder, name) => item.image || `img/${folder}/${slug(name)}.png`;
-const cardBanner = (src, alt) => `<div class="card-banner"><img src="${esc(src)}" alt="${esc(alt)}" onload="this.parentNode.classList.add('has-img')" onerror="this.remove()"></div>`;
+// zoom = true (used inside pop-ups) makes the banner click-to-enlarge once its picture has loaded.
+const cardBanner = (src, alt, zoom = false) => `<div class="card-banner"><img src="${esc(src)}" alt="${esc(alt)}" onload="this.parentNode.classList.add('has-img')${zoom ? "; this.nextElementSibling.disabled = false" : ""}" onerror="this.remove()">${zoom ? `<button class="zoom-hit" type="button" data-zoom="${esc(src)}" data-alt="${esc(alt)}" aria-label="Enlarge picture: ${esc(alt)}" disabled></button>` : ""}</div>`;
 
 // TEXT WITH A PICTURE BESIDE IT (inside pop-ups). One block:
 //   { title: "Heading (optional)", text: "a paragraph, or a list of paragraphs", image: "img/...png" (optional), side: "left" (optional) }
@@ -718,8 +1057,9 @@ const modalWindow = modal.querySelector(".modal-window"), modalContent = $("moda
 // POP-UP KINDS: a button with data-open="<kind>" data-key="<key>" opens the builder listed here. Each builder lives in its
 // category section above and returns HTML (or "" if the key is unknown). To add a kind: write xxxPopup(key) in your
 // category, then add one line to POPUPS. Picture kinds (WIDE_POPUPS) get the wide window.
-const POPUPS = { boss: bossPopup, image: bossImagePopup, structure: structurePopup, photo: photoPopup, card: cardPopup };
+const POPUPS = { boss: bossPopup, image: bossImagePopup, structure: structurePopup, photo: photoPopup, card: cardPopup, tiers: tiersPopup };
 const WIDE_POPUPS = ["image"];     // boss picture: wide window with a title and an X
+const MEDIUM_POPUPS = ["boss"];    // boss full entry: a bit wider than normal so the loot table fits
 const BARE_POPUPS = ["photo"];     // Photos tab: only the zoomed picture, no window, title or X
 
 let lastFocus = null;
@@ -727,6 +1067,7 @@ function openModal(kind, key) {
   const html = POPUPS[kind]?.(key);
   if (!html) return;
   modalWindow.classList.toggle("lightbox", WIDE_POPUPS.includes(kind));
+  modalWindow.classList.toggle("medium", MEDIUM_POPUPS.includes(kind));
   modalWindow.classList.toggle("bare", BARE_POPUPS.includes(kind));
   modalContent.innerHTML = html;
   lastFocus = document.activeElement;
@@ -742,10 +1083,38 @@ function closeModal() {
   lastFocus?.focus();
 }
 
-modal.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) closeModal(); });
+// PICTURE ZOOM: a picture inside a pop-up (data-zoom="<src>") opens large on top of it; closing it returns to the pop-up.
+let zoomLayer = null, zoomFrom = null;
+function openZoom(src, alt, from) {
+  if (!zoomLayer) {   // created the first time it is needed
+    zoomLayer = document.createElement("div");
+    zoomLayer.className = "zoom-layer"; zoomLayer.tabIndex = -1; zoomLayer.hidden = true;
+    zoomLayer.innerHTML = '<img class="zoom-img" alt="">';
+    zoomLayer.addEventListener("click", closeZoom);
+    document.body.appendChild(zoomLayer);
+  }
+  const img = zoomLayer.querySelector("img");
+  img.src = src; img.alt = alt || "";
+  zoomFrom = from;
+  zoomLayer.hidden = false;
+  zoomLayer.focus();
+}
+function closeZoom() {   // returns true if a zoomed picture was open
+  if (!zoomLayer || zoomLayer.hidden) return false;
+  zoomLayer.hidden = true;
+  zoomFrom?.focus();
+  return true;
+}
+
+modal.addEventListener("click", (e) => {
+  const z = e.target.closest("[data-zoom]");
+  if (z) return openZoom(z.dataset.zoom, z.dataset.alt, z);
+  if (e.target.closest("[data-close]")) closeModal();
+});
 document.addEventListener("keydown", (e) => {
   if (modal.hidden) return;
-  if (e.key === "Escape") return closeModal();
+  if (e.key === "Escape") return closeZoom() || closeModal();   // Esc closes a zoomed picture first, then the pop-up
+  if (zoomLayer && !zoomLayer.hidden) { if (e.key === "Tab") e.preventDefault(); return; }
   if (e.key === "Tab") { // keep keyboard focus inside the window
     const f = [...modalWindow.querySelectorAll("button, [href], summary")];
     const first = f[0], last = f[f.length - 1];
@@ -760,8 +1129,11 @@ function initTheme() {
   const paintTheme = () => {
     const dark = root.dataset.theme === "dark";
     themeBtn.querySelector("span").textContent = dark ? "☀️" : "🌙";
-    themeBtn.dataset.tip = dark ? "Switch to light mode" : "Switch to dark mode";
-    themeBtn.setAttribute("aria-label", themeBtn.dataset.tip);
+    themeBtn.setAttribute("aria-label", "Toggle color theme");
+    const logo = $("server-logo")?.querySelector("img");
+    if (logo) logo.src = dark && SITE.logoAlt ? SITE.logoAlt : SITE.logo;
+    const favicon = document.getElementById("favicon");
+    if (favicon) favicon.href = dark && SITE.logoAlt ? SITE.logoAlt : SITE.logo;
   };
   themeBtn.addEventListener("click", () => {
     root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
@@ -783,7 +1155,7 @@ function initMusic() {
       const on = !audio.paused;
       musicBtn.setAttribute("aria-pressed", on);
       musicBtn.classList.toggle("playing", on);
-      musicBtn.querySelector("span").textContent = on ? "🎵" : "🔇";
+      musicBtn.querySelector("span").textContent = on ? "🔊" : "🔇";
       musicBtn.dataset.tip = missing ? `Theme file not found: add ${mu.src}`
         : on ? `Now playing: ${mu.title}` : `Click to play: ${mu.title}`;
     };
@@ -835,7 +1207,7 @@ const TAB_TYPES = {
   home:       () => renderHome(),
   bosses:     () => renderBossPanel(),
   structures: () => `<div class="grid">${STRUCTURES.map(renderStructure).join("")}</div>`,
-  photos:     () => `<div class="photo-list">${PHOTOS.map(renderPhoto).join("")}</div>`,
+  photos:     () => renderPhotoBook(),
   cards:      (tab) => `<div class="grid">${(CARDS[tab.id] || []).map((it, i) => renderCard(it, tab.id, i)).join("")}</div>`
 };
 
@@ -844,12 +1216,23 @@ function build() {
   $("server-name").textContent = SITE.name;
   $("footer-text").textContent = SITE.footer;
   document.title = SITE.name;
-  if (SITE.logo) {   // if the file is missing, the dashed "Logo" placeholder comes back
+if (SITE.logo) {
     const lg = $("server-logo");
     lg.classList.add("has-img");
-    lg.innerHTML = `<img src="${esc(SITE.logo)}" alt="" onerror="this.parentNode.classList.remove('has-img');this.parentNode.textContent='Logo'">`;
+    const img = document.createElement("img");
+    img.src = SITE.logo;
+    img.alt = "";
+    img.addEventListener("error", () => {
+      if (SITE.logoAlt && !img.dataset.triedAlt) {
+        img.dataset.triedAlt = "1";
+        img.src = SITE.logoAlt;
+      } else {
+        lg.classList.remove("has-img");
+        lg.textContent = "Logo";
+      }
+    });
+    lg.replaceChildren(img);
   }
-  $("season").textContent = SITE.season || "";
   if (SITE.ip) $("footer-ip").textContent = SITE.ip; else $("footer-ip").parentNode.hidden = true;   // IP hidden when empty
   initTheme();
   initMusic();
@@ -863,9 +1246,9 @@ function build() {
     tablist.appendChild(btn);
 
     const body = (TAB_TYPES[tab.type] || TAB_TYPES.cards)(tab);
-    const hasHeading = tab.type !== "home" && tab.type !== "bosses";   // title + intro above the cards / photos
+    const hasHeading = !["home", "bosses", "photos"].includes(tab.type);   // title + intro above the cards / photos
     const panel = document.createElement("section");
-    panel.className = "panel" + (tab.type === "bosses" ? " fit" : "") + (tab.type === "home" ? " home-panel" : "");
+    panel.className = "panel" + (tab.type === "bosses" ? " fit" : "") + (tab.type === "photos" ? " nb-panel" : "") + (tab.type === "home" ? " home-panel" : "");
     panel.id = `panel-${tab.id}`;
     panel.setAttribute("role", "tabpanel"); panel.setAttribute("aria-labelledby", btn.id);
     panel.tabIndex = 0; panel.hidden = true;
@@ -873,6 +1256,7 @@ function build() {
     main.appendChild(panel);
   });
   if (BOSSES.length) setRealm("All");
+  showPhotoSpread();   // first photo spread
 }
 
 function activate(id, { focus = false, updateHash = true } = {}) {
@@ -898,6 +1282,8 @@ tablist.addEventListener("keydown", (e) => {
 });
 
 main.addEventListener("click", (e) => {
+  const turn = e.target.closest("[data-photo-turn]");   // notebook Previous / Next
+  if (turn) return turnPhotoPage(Number(turn.dataset.photoTurn));
   const chk = e.target.closest("[data-check]");       // tick boxes (Contents list and entry page)
   if (chk) return toggleDefeated(chk.dataset.check);
   const open = e.target.closest("[data-open]");
@@ -919,6 +1305,14 @@ main.addEventListener("input", (e) => {   // boss search box
   applyFilters();
 });
 
+main.addEventListener("change", (e) => {   // notebook: the "Page 1 of 14" menu jumps to the chosen page
+  if (e.target.id === "photo-jump") jumpPhotoPage(e.target.value);
+});
+main.addEventListener("keydown", (e) => {   // notebook: left / right arrow keys turn the page
+  if (e.altKey || e.ctrlKey || e.metaKey || e.target.closest("select") || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+  if (!e.target.closest(".panel")?.querySelector(".notebook")) return;
+  turnPhotoPage(e.key === "ArrowRight" ? 1 : -1);
+});
 window.addEventListener("hashchange", () => activate(location.hash.slice(1), { updateHash: false }));
 
 build();
